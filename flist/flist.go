@@ -129,8 +129,8 @@ func Connect(url string) (*Client, error) {
 		return nil, fmt.Errorf("dial: %v", err)
 	}
 
-	m := make(chan []byte, 1)
-	q := make(chan struct{}, 1)
+	m := make(chan []byte, 100)
+	q := make(chan struct{})
 	go readMessages(ws, m, q)
 	return &Client{ws: ws, Messenger: m, Quit: q, Name: clientName, Version: clientVersion}, nil
 }

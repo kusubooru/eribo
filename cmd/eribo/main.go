@@ -47,9 +47,9 @@ func main() {
 	}
 	*addr = defaultAddr(*addr, *testServer, *insecure)
 
-	doneRead := make(chan struct{}, 1)
+	doneRead := make(chan struct{})
 	defer close(doneRead)
-	doneHandle := make(chan struct{}, 1)
+	doneHandle := make(chan struct{})
 	defer close(doneHandle)
 
 	// Connect to F-list.
@@ -80,8 +80,9 @@ func main() {
 	waitForInterrupt(c, doneRead, doneHandle)
 }
 
+// waitForInterrupt blocks and waits either for interrupt signal or for the
+// client to quit.
 func waitForInterrupt(c *flist.Client, doneRead, doneHandle chan struct{}) {
-	// Wait for interrupt signal.
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	for {
@@ -107,11 +108,11 @@ func readMessages(receiver <-chan []byte, sender chan<- *flist.MSG, done chan st
 	for {
 		select {
 		case <-done:
-			fmt.Println("done reading")
+			log.Println("done reading")
 			return
 		case message := <-receiver:
 			cmd, err := flist.DecodeCommand(message)
-			if err == flist.ErrUnknownCmd {
+			if err == flist.ErrUnknownCmd && len(message) != 0 {
 				fmt.Println("got:", string(message))
 			}
 			if err != nil && err != flist.ErrUnknownCmd {
@@ -130,7 +131,7 @@ func handleMessages(messages <-chan *flist.MSG, done chan struct{}) {
 	for {
 		select {
 		case <-done:
-			fmt.Println("done handling")
+			log.Println("done handling")
 			return
 		case msg := <-messages:
 			fmt.Println("--->", msg)
