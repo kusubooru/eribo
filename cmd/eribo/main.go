@@ -14,6 +14,23 @@ const (
 	targetChannel = "ADH-c63dd350865f6eb33043"
 )
 
+func defaultAddr(addr string, testServer, insecure bool) string {
+	switch {
+	default:
+		log.Printf("Using encrypted production server address: %q", addr)
+	case !testServer && insecure:
+		addr = "ws://chat.f-list.net:9722"
+		log.Printf("Using unencrypted production server address: %q", addr)
+	case testServer && !insecure:
+		addr = "wss://chat.f-list.net:8799"
+		log.Printf("Using encrypted test server address: %q", addr)
+	case testServer && insecure:
+		addr = "ws://chat.f-list.net:8722"
+		log.Printf("Using unencrypted test server address: %q", addr)
+	}
+	return addr
+}
+
 func main() {
 	var (
 		insecure   = flag.Bool("insecure", false, "use insecure ws:// websocket instead of wss://")
@@ -28,19 +45,7 @@ func main() {
 		log.Println("Account, password and character name needed for identification.")
 		log.Fatal("Use -account=<username> -password=<password> -character=<char name>")
 	}
-	switch {
-	default:
-		log.Printf("Using encrypted production server address: %q", *addr)
-	case !*testServer && *insecure:
-		*addr = "ws://chat.f-list.net:9722"
-		log.Printf("Using unencrypted production server address: %q", *addr)
-	case *testServer && !*insecure:
-		*addr = "wss://chat.f-list.net:8799"
-		log.Printf("Using encrypted test server address: %q", *addr)
-	case *testServer && *insecure:
-		*addr = "ws://chat.f-list.net:8722"
-		log.Printf("Using unencrypted test server address: %q", *addr)
-	}
+	*addr = defaultAddr(*addr, *testServer, *insecure)
 
 	doneRead := make(chan struct{}, 1)
 	defer close(doneRead)
@@ -72,6 +77,10 @@ func main() {
 		return
 	}
 
+	waitForInterrupt(c, doneRead, doneHandle)
+}
+
+func waitForInterrupt(c *flist.Client, doneRead, doneHandle chan struct{}) {
 	// Wait for interrupt signal.
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
@@ -84,6 +93,11 @@ func main() {
 			if err := c.Disconnect(); err != nil {
 				log.Println("disconnect error:", err)
 			}
+			return
+		case <-c.Quit:
+			log.Println("disconnected")
+			doneRead <- struct{}{}
+			doneHandle <- struct{}{}
 			return
 		}
 	}
@@ -98,7 +112,7 @@ func readMessages(receiver <-chan []byte, sender chan<- *flist.MSG, done chan st
 		case message := <-receiver:
 			cmd, err := flist.DecodeCommand(message)
 			if err == flist.ErrUnknownCmd {
-				fmt.Println(string(message))
+				fmt.Println("got:", string(message))
 			}
 			if err != nil && err != flist.ErrUnknownCmd {
 				log.Println("cmd decode error:", err)

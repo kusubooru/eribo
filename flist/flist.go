@@ -101,6 +101,7 @@ func (m *MSG) CmdDecode(data []byte) error {
 type Client struct {
 	ws        *websocket.Conn
 	Messenger <-chan []byte
+	Quit      <-chan struct{}
 	Name      string
 	Version   string
 }
@@ -129,12 +130,16 @@ func Connect(url string) (*Client, error) {
 	}
 
 	m := make(chan []byte, 1)
-	go readMessages(ws, m)
-	return &Client{ws: ws, Messenger: m, Name: clientName, Version: clientVersion}, nil
+	q := make(chan struct{}, 1)
+	go readMessages(ws, m, q)
+	return &Client{ws: ws, Messenger: m, Quit: q, Name: clientName, Version: clientVersion}, nil
 }
 
-func readMessages(ws *websocket.Conn, messenger chan []byte) {
+func readMessages(ws *websocket.Conn, messenger chan<- []byte, quit chan<- struct{}) {
 	defer close(messenger)
+	defer func() {
+		quit <- struct{}{}
+	}()
 	for {
 		_, msg, err := ws.ReadMessage()
 		if err != nil {
