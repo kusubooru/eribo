@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -46,6 +47,11 @@ func cmdDecode(data []byte, v interface{}) error {
 	return json.Unmarshal(data[3:], v)
 }
 
+type PIN struct{}
+
+func (c *PIN) CmdEncode() ([]byte, error)  { return cmdEncode("PIN", nil) }
+func (c *PIN) CmdDecode(data []byte) error { return nil }
+
 type IDN struct {
 	Method        string `json:"method"`
 	Account       string `json:"account"`
@@ -70,7 +76,7 @@ func (c *IDN) CmdEncode() ([]byte, error) {
 	return cmdEncode("IDN", c)
 }
 
-func (c *IDN) CmdDecocode(data []byte) error {
+func (c *IDN) CmdDecode(data []byte) error {
 	return cmdDecode(data, c)
 }
 
@@ -99,6 +105,7 @@ func (m *MSG) CmdDecode(data []byte) error {
 }
 
 type Client struct {
+	mu        sync.Mutex
 	ws        *websocket.Conn
 	Messenger <-chan []byte
 	Quit      <-chan struct{}
@@ -109,8 +116,17 @@ type Client struct {
 func (c *Client) Close() error {
 	return c.ws.Close()
 }
+
 func (c *Client) Disconnect() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+}
+
+func (c *Client) SendPIN() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.ws.WriteMessage(websocket.TextMessage, []byte("PIN"))
 }
 
 func (c *Client) ReadMessage() ([]byte, error) {
@@ -163,6 +179,9 @@ func DecodeCommand(data []byte) (Command, error) {
 			return nil, fmt.Errorf("MSG decode: %v", err)
 		}
 		return msg, nil
+	case isCmd(data, "PIN"):
+		pin := new(PIN)
+		return pin, nil
 	default:
 		return nil, ErrUnknownCmd
 	}
@@ -180,6 +199,8 @@ func (c *Client) Identify(account, password, character string) error {
 		return fmt.Errorf("IDN encode failed: %v", err)
 	}
 
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if err := c.ws.WriteMessage(websocket.TextMessage, data); err != nil {
 		return fmt.Errorf("identify error: %v", err)
 	}

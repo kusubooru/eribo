@@ -68,7 +68,7 @@ func main() {
 	msgch := make(chan *flist.MSG, 10)
 	defer close(msgch)
 
-	go readMessages(c.Messenger, msgch, doneRead)
+	go readMessages(c, msgch, doneRead)
 	go handleMessages(msgch, doneHandle)
 
 	// Login to F-list.
@@ -104,24 +104,27 @@ func waitForInterrupt(c *flist.Client, doneRead, doneHandle chan struct{}) {
 	}
 }
 
-func readMessages(receiver <-chan []byte, sender chan<- *flist.MSG, done chan struct{}) {
+func readMessages(c *flist.Client, sender chan<- *flist.MSG, done chan struct{}) {
 	for {
 		select {
 		case <-done:
 			log.Println("done reading")
 			return
-		case message := <-receiver:
+		case message := <-c.Messenger:
 			cmd, err := flist.DecodeCommand(message)
 			if err == flist.ErrUnknownCmd && len(message) != 0 {
 				fmt.Println("got:", string(message))
 			}
 			if err != nil && err != flist.ErrUnknownCmd {
 				log.Println("cmd decode error:", err)
-				return
 			}
 			switch t := cmd.(type) {
 			case *flist.MSG:
 				sender <- t
+			case *flist.PIN:
+				if err := c.SendPIN(); err != nil {
+					log.Println("send PIN failed:", err)
+				}
 			}
 		}
 	}
