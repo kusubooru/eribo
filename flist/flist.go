@@ -1,0 +1,257 @@
+package flist
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"strings"
+
+	"github.com/gorilla/websocket"
+)
+
+const (
+	clientName    = "eri"
+	clientVersion = "0.1.0"
+)
+
+type CmdEncoder interface {
+	CmdEncode() ([]byte, error)
+}
+
+type CmdDecoder interface {
+	CmdDecode([]byte) error
+}
+
+//type Command interface {
+//	Command() []byte
+//}
+
+type Command interface {
+	CmdDecoder
+	CmdEncoder
+}
+
+func cmdEncode(name string, body interface{}) ([]byte, error) {
+	if body == nil {
+		return []byte(name), nil
+	}
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	cmdType := []byte(name + " ")
+	return append(cmdType, payload...), nil
+}
+
+func cmdDecode(data []byte, v interface{}) error {
+	return json.Unmarshal(data[3:], v)
+}
+
+type IDN struct {
+	Method        string `json:"method"`
+	Account       string `json:"account"`
+	Ticket        string `json:"ticket"`
+	Character     string `json:"character"`
+	ClientName    string `json:"cname"`
+	ClientVersion string `json:"cversion"`
+}
+
+func NewIDN(account, ticket, character, clientName, clientVersion string) *IDN {
+	return &IDN{
+		Method:        "ticket",
+		Account:       account,
+		Ticket:        ticket,
+		Character:     character,
+		ClientName:    clientName,
+		ClientVersion: clientVersion,
+	}
+}
+
+func (c IDN) Command() []byte {
+	payload := fmt.Sprintf(
+		"IDN { \"method\": \"ticket\", \"account\": %q, \"ticket\": %q, \"character\": %q, \"cname\": %q, \"cversion\": %q }",
+		c.Account, c.Ticket, c.Character, c.ClientName, c.ClientVersion)
+	return []byte(payload)
+}
+
+func (c *IDN) CmdEncode() ([]byte, error) {
+	return cmdEncode("IDN", c)
+}
+
+func (c *IDN) CmdDecocode(data []byte) error {
+	return cmdDecode(data, c)
+}
+
+type channels struct {
+	Channels []channel `json:"channels"`
+}
+
+type channel struct {
+	Name       string `json:"name"`
+	Title      string `json:"title"`
+	Characters int    `json:"characters"`
+}
+
+type MSG struct {
+	Character string `json:"character"`
+	Message   string `json:"message"`
+	Channel   string `json:"channel"`
+}
+
+func (m *MSG) CmdEncode() ([]byte, error) {
+	return cmdEncode("MSG", m)
+	//payload, err := json.Marshal(c)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//cmdType := []byte("IDN ")
+	//return append(cmdType, payload...), nil
+}
+
+func (m *MSG) CmdDecode(data []byte) error {
+	return json.Unmarshal(data[3:], m)
+}
+
+type Client struct {
+	ws *websocket.Conn
+	//Messenger <-chan Command
+	Messenger <-chan []byte
+	Name      string
+	Version   string
+}
+
+func (c *Client) Close() error {
+	return c.ws.Close()
+}
+func (c *Client) Disconnect() error {
+	return c.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+}
+
+func (c *Client) ReadMessage() ([]byte, error) {
+	_, message, err := c.ws.ReadMessage()
+	return message, err
+}
+
+type RawMessage struct {
+	Data []byte
+	Err  error
+}
+
+func Connect(url string) (*Client, error) {
+	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("dial: %v", err)
+	}
+
+	//c := make(chan Command, 1)
+	//go readMessages(ws, c, done)
+	m := make(chan []byte, 1)
+	go readMessages2(ws, m)
+	return &Client{ws: ws, Messenger: m, Name: clientName, Version: clientVersion}, nil
+}
+
+func readMessages2(ws *websocket.Conn, messenger chan []byte) {
+	defer close(messenger)
+	for {
+		_, msg, err := ws.ReadMessage()
+		if err != nil {
+			return
+		}
+		messenger <- msg
+	}
+}
+
+func readMessages(conn *websocket.Conn, messenger chan Command, done chan struct{}) {
+	defer conn.Close()
+	defer close(messenger)
+	for {
+		select {
+		case <-done:
+			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			return
+		default:
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				log.Println("error reading:", err)
+				return
+			}
+			cmd, err := DecodeCommand(message)
+			if err == ErrUnknownCmd {
+				fmt.Println(string(message))
+			}
+			if err != nil && err != ErrUnknownCmd {
+				log.Println("cmd decode error:", err)
+				return
+			}
+			messenger <- cmd
+			//m := &RawMessage{Data: message, Err: err}
+			//messenger <- m
+		}
+	}
+}
+
+func isCmd(data []byte, cmdType string) bool {
+	return bytes.HasPrefix(data, []byte(cmdType))
+}
+
+var ErrUnknownCmd = errors.New("unknown command")
+
+func DecodeCommand(data []byte) (Command, error) {
+	switch {
+	case isCmd(data, "MSG"):
+		msg := new(MSG)
+		if err := msg.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("MSG decode: %v", err)
+		}
+		return msg, nil
+	default:
+		return nil, ErrUnknownCmd
+	}
+}
+
+func (c *Client) Identify(account, password, character string) error {
+	ticket, err := GetTicket(account, password)
+	if err != nil {
+		return fmt.Errorf("could not get ticket: %v", err)
+	}
+	idn := NewIDN(account, ticket, character, c.Name, c.Version)
+	if err := c.ws.WriteMessage(websocket.TextMessage, idn.Command()); err != nil {
+		return fmt.Errorf("identify error: %v", err)
+	}
+	return nil
+}
+
+func GetTicket(account, password string) (string, error) {
+	u := "https://www.f-list.net/json/getApiTicket.php"
+
+	v := url.Values{}
+	v.Add("account", account)
+	v.Add("password", password)
+	v.Add("no_characters", "true")
+	v.Add("no_friends", "true")
+	v.Add("no_bookmarks", "true")
+
+	body := strings.NewReader(v.Encode())
+	resp, err := http.Post(u, "application/x-www-form-urlencoded", body)
+	if err != nil {
+		return "", fmt.Errorf("post failed: %v", err)
+	}
+
+	type ticket struct {
+		Ticket string `json:"ticket"`
+		Error  string `json:"error"`
+	}
+
+	t := new(ticket)
+	if err := json.NewDecoder(resp.Body).Decode(t); err != nil {
+		return "", fmt.Errorf("could not decode ticket: %v", err)
+	}
+	if t.Error != "" {
+		return "", fmt.Errorf("ticket contains error: %s", t.Error)
+	}
+	return t.Ticket, nil
+}
