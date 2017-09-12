@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -25,10 +24,6 @@ type CmdEncoder interface {
 type CmdDecoder interface {
 	CmdDecode([]byte) error
 }
-
-//type Command interface {
-//	Command() []byte
-//}
 
 type Command interface {
 	CmdDecoder
@@ -71,13 +66,6 @@ func NewIDN(account, ticket, character, clientName, clientVersion string) *IDN {
 	}
 }
 
-func (c IDN) Command() []byte {
-	payload := fmt.Sprintf(
-		"IDN { \"method\": \"ticket\", \"account\": %q, \"ticket\": %q, \"character\": %q, \"cname\": %q, \"cversion\": %q }",
-		c.Account, c.Ticket, c.Character, c.ClientName, c.ClientVersion)
-	return []byte(payload)
-}
-
 func (c *IDN) CmdEncode() ([]byte, error) {
 	return cmdEncode("IDN", c)
 }
@@ -104,12 +92,6 @@ type MSG struct {
 
 func (m *MSG) CmdEncode() ([]byte, error) {
 	return cmdEncode("MSG", m)
-	//payload, err := json.Marshal(c)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//cmdType := []byte("IDN ")
-	//return append(cmdType, payload...), nil
 }
 
 func (m *MSG) CmdDecode(data []byte) error {
@@ -117,8 +99,7 @@ func (m *MSG) CmdDecode(data []byte) error {
 }
 
 type Client struct {
-	ws *websocket.Conn
-	//Messenger <-chan Command
+	ws        *websocket.Conn
 	Messenger <-chan []byte
 	Name      string
 	Version   string
@@ -147,14 +128,12 @@ func Connect(url string) (*Client, error) {
 		return nil, fmt.Errorf("dial: %v", err)
 	}
 
-	//c := make(chan Command, 1)
-	//go readMessages(ws, c, done)
 	m := make(chan []byte, 1)
-	go readMessages2(ws, m)
+	go readMessages(ws, m)
 	return &Client{ws: ws, Messenger: m, Name: clientName, Version: clientVersion}, nil
 }
 
-func readMessages2(ws *websocket.Conn, messenger chan []byte) {
+func readMessages(ws *websocket.Conn, messenger chan []byte) {
 	defer close(messenger)
 	for {
 		_, msg, err := ws.ReadMessage()
@@ -162,35 +141,6 @@ func readMessages2(ws *websocket.Conn, messenger chan []byte) {
 			return
 		}
 		messenger <- msg
-	}
-}
-
-func readMessages(conn *websocket.Conn, messenger chan Command, done chan struct{}) {
-	defer conn.Close()
-	defer close(messenger)
-	for {
-		select {
-		case <-done:
-			conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			return
-		default:
-			_, message, err := conn.ReadMessage()
-			if err != nil {
-				log.Println("error reading:", err)
-				return
-			}
-			cmd, err := DecodeCommand(message)
-			if err == ErrUnknownCmd {
-				fmt.Println(string(message))
-			}
-			if err != nil && err != ErrUnknownCmd {
-				log.Println("cmd decode error:", err)
-				return
-			}
-			messenger <- cmd
-			//m := &RawMessage{Data: message, Err: err}
-			//messenger <- m
-		}
 	}
 }
 
@@ -218,8 +168,14 @@ func (c *Client) Identify(account, password, character string) error {
 	if err != nil {
 		return fmt.Errorf("could not get ticket: %v", err)
 	}
+
 	idn := NewIDN(account, ticket, character, c.Name, c.Version)
-	if err := c.ws.WriteMessage(websocket.TextMessage, idn.Command()); err != nil {
+	data, err := idn.CmdEncode()
+	if err != nil {
+		return fmt.Errorf("IDN encode failed: %v", err)
+	}
+
+	if err := c.ws.WriteMessage(websocket.TextMessage, data); err != nil {
 		return fmt.Errorf("identify error: %v", err)
 	}
 	return nil

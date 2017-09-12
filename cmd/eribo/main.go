@@ -41,14 +41,13 @@ func main() {
 		*addr = "ws://chat.f-list.net:8722"
 		log.Printf("Using unencrypted test server address: %q", *addr)
 	}
-	//log.SetFlags(0)
 
 	doneRead := make(chan struct{}, 1)
 	defer close(doneRead)
 	doneHandle := make(chan struct{}, 1)
 	defer close(doneHandle)
 
-	// Connect to flist.
+	// Connect to F-list.
 	c, err := flist.Connect(*addr)
 	if err != nil {
 		log.Println("connect error:", err)
@@ -60,12 +59,14 @@ func main() {
 		}
 	}()
 
+	// Prepare channel for messages.
 	msgch := make(chan *flist.MSG, 10)
 	defer close(msgch)
-	//go readMessages(c, msgch, doneRead)
-	go readMessages2(c.Messenger, msgch, doneRead)
+
+	go readMessages(c.Messenger, msgch, doneRead)
 	go handleMessages(msgch, doneHandle)
 
+	// Login to F-list.
 	if err := c.Identify(*account, *password, *character); err != nil {
 		log.Println(err)
 		return
@@ -88,16 +89,7 @@ func main() {
 	}
 }
 
-//func readMessages(receiver <-chan flist.Command, sender chan<- *flist.MSG, done chan struct{}) {
-//	for msg := range receiver {
-//		switch cmd := msg.(type) {
-//		case *flist.MSG:
-//			sender <- cmd
-//		}
-//	}
-//}
-
-func readMessages2(receiver <-chan []byte, sender chan<- *flist.MSG, done chan struct{}) {
+func readMessages(receiver <-chan []byte, sender chan<- *flist.MSG, done chan struct{}) {
 	for {
 		select {
 		case <-done:
@@ -116,37 +108,6 @@ func readMessages2(receiver <-chan []byte, sender chan<- *flist.MSG, done chan s
 			case *flist.MSG:
 				sender <- t
 			}
-		}
-	}
-}
-
-func readMessages(c *flist.Client, msgch chan<- *flist.MSG, done chan struct{}) {
-	for {
-		select {
-		case <-done:
-			fmt.Println("done reading")
-			return
-		default:
-			message, err := c.ReadMessage()
-			if err != nil {
-				log.Println("error reading:", err)
-				return
-			}
-			cmd, err := flist.DecodeCommand(message)
-			if err == flist.ErrUnknownCmd {
-				fmt.Println(string(message))
-			}
-			if err != nil && err != flist.ErrUnknownCmd {
-				log.Println("cmd decode error:", err)
-				return
-			}
-			switch t := cmd.(type) {
-			case *flist.MSG:
-				msgch <- t
-			}
-			//time.Sleep(50 * time.Millisecond)
-			//m := &RawMessage{Data: message, Err: err}
-			//messenger <- m
 		}
 	}
 }
