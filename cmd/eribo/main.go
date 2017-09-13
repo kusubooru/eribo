@@ -7,6 +7,12 @@ import (
 	"os"
 	"os/signal"
 
+	"mvdan.cc/xurls"
+
+	_ "github.com/go-sql-driver/mysql"
+
+	"github.com/kusubooru/eribo/eribo"
+	"github.com/kusubooru/eribo/eribo/mysql"
 	"github.com/kusubooru/eribo/flist"
 )
 
@@ -39,13 +45,23 @@ func main() {
 		account    = flag.String("account", "", "websocket address to connect")
 		password   = flag.String("password", "", "websocket address to connect")
 		character  = flag.String("character", "", "websocket address to connect")
+		dataSource = flag.String("datasource", "", "MySQL datasource")
 	)
 	flag.Parse()
+	if *dataSource == "" {
+		log.Println("Database datasource not provided, exiting...")
+		log.Fatal("Use -datasource='username:password@(host:port)/database?parseTime=true'")
+	}
 	if *account == "" || *password == "" || *character == "" {
 		log.Println("Account, password and character name needed for identification.")
 		log.Fatal("Use -account=<username> -password=<password> -character=<char name>")
 	}
 	*addr = defaultAddr(*addr, *testServer, *insecure)
+
+	store, err := mysql.NewEriboStore(*dataSource)
+	if err != nil {
+		log.Fatal("store error:", err)
+	}
 
 	doneRead := make(chan struct{})
 	defer close(doneRead)
@@ -69,7 +85,7 @@ func main() {
 	defer close(msgch)
 
 	go readMessages(c, msgch, doneRead)
-	go handleMessages(msgch, doneHandle)
+	go handleMessages(store, msgch, doneHandle)
 
 	// Login to F-list.
 	if err := c.Identify(*account, *password, *character); err != nil {
@@ -130,13 +146,20 @@ func readMessages(c *flist.Client, sender chan<- *flist.MSG, done chan struct{})
 	}
 }
 
-func handleMessages(messages <-chan *flist.MSG, done chan struct{}) {
+func handleMessages(store eribo.Store, messages <-chan *flist.MSG, done chan struct{}) {
 	for {
 		select {
 		case <-done:
 			log.Println("done handling")
 			return
 		case msg := <-messages:
+			urls := xurls.Strict.FindAllString(msg.Message, -1)
+			if len(urls) != 0 {
+				m := &eribo.Message{Channel: msg.Channel, Player: msg.Character, Message: msg.Message}
+				if err := store.AddMessageWithURLs(m, urls); err != nil {
+					log.Println("error storing message:", err)
+				}
+			}
 			fmt.Println("--->", msg)
 		}
 	}
