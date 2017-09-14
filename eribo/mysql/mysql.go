@@ -27,6 +27,9 @@ func (db *EriboStore) createSchema() error {
 	if _, err := db.Exec(tableImages); err != nil {
 		return err
 	}
+	if _, err := db.Exec(tableFeedback); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -35,6 +38,9 @@ func (db *EriboStore) dropSchema() error {
 		return err
 	}
 	if _, err := db.Exec(`DROP TABLE messages`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`DROP TABLE feedback`); err != nil {
 		return err
 	}
 	return nil
@@ -59,5 +65,14 @@ CREATE TABLE IF NOT EXISTS images (
 	message_id BIGINT UNSIGNED NOT NULL,
 	PRIMARY KEY (id),
 	FOREIGN KEY (message_id) REFERENCES messages(id)
+)`
+
+	tableFeedback = `
+CREATE TABLE IF NOT EXISTS feedback (
+	id SERIAL,
+	message TEXT NOT NULL,
+	player VARCHAR(255) NOT NULL,
+	created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id)
 )`
 )

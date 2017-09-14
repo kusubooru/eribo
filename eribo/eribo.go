@@ -18,7 +18,17 @@ type Message struct {
 	Created time.Time
 }
 
+type Feedback struct {
+	ID      int64
+	Message string
+	Player  string
+	Created time.Time
+}
+
 type Store interface {
 	AddMessageWithURLs(m *Message, urls []string) error
 	GetImages() ([]*Image, error)
+
+	AddFeedback(f *Feedback) error
+	GetFeedback() ([]*Feedback, error)
 }

@@ -48,3 +48,38 @@ func TestAddMessageWithURLs(t *testing.T) {
 		t.Fatalf("AddImages = \nhave: %#v\nwant: %#v", have, want)
 	}
 }
+
+func TestAddFeedback(t *testing.T) {
+	s := setup(t)
+	defer teardown(t, s)
+
+	f := &eribo.Feedback{
+		Player:  "foo",
+		Message: "bar",
+	}
+	if err := s.AddFeedback(f); err != nil {
+		t.Fatal("AddFeedback failed:", err)
+	}
+
+	feedback, err := s.GetFeedback()
+	if err != nil {
+		t.Fatal("GetFeedback failed:", err)
+	}
+	if got, want := len(feedback), 1; got != want {
+		t.Fatal("GetFeedback produced %d results, want %d", got, want)
+	}
+	want := []*eribo.Feedback{
+		{ID: 1, Player: "foo", Message: "bar"},
+	}
+	// ignore created
+	for _, f := range feedback {
+		f.Created = time.Time{}
+	}
+	if have := feedback; !reflect.DeepEqual(have, want) {
+		data, _ := json.Marshal(have)
+		fmt.Println(string(data))
+		data, _ = json.Marshal(want)
+		fmt.Println(string(data))
+		t.Fatalf("AddFeedback = \nhave: %#v\nwant: %#v", have, want)
+	}
+}

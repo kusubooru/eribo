@@ -57,3 +57,20 @@ func (db *EriboStore) GetImages() ([]*eribo.Image, error) {
 	}
 	return images, nil
 }
+
+func (db *EriboStore) GetFeedback() ([]*eribo.Feedback, error) {
+	feedback := []*eribo.Feedback{}
+	const query = `SELECT * FROM feedback`
+	if err := db.Select(&feedback, query); err != nil {
+		return nil, err
+	}
+	return feedback, nil
+}
+
+func (db *EriboStore) AddFeedback(f *eribo.Feedback) error {
+	_, err := db.Exec("INSERT INTO feedback(message, player) VALUES (?, ?)", f.Message, f.Player)
+	if err != nil {
+		return err
+	}
+	return nil
+}
