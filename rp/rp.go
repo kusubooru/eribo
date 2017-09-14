@@ -50,3 +50,14 @@ var feedback = []string{
 	`/me bows graciously, "Your feedback is highly appreciated %s-sama".`,
 	`/me nods affirmatively, "Understood %-sama. Your feedback has been recorded".`,
 }
+
+func Tomato(name string) string {
+	if name == "Ryuunosuke Akashaka" {
+		var s = `/me humbly offers a juicy and fresh-looking tomato to %s, "A
+		pleasure to serve you Dragon-sama".`
+		s = strings.Replace(s, "\n", "", -1)
+		s = strings.Replace(s, "\t", " ", -1)
+		return fmt.Sprintf(s, name)
+	}
+	return fmt.Sprintf("/me gives a fresh-looking tomato to %s.", name)
+}

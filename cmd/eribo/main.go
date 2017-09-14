@@ -183,7 +183,15 @@ func respond(c *flist.Client, m *flist.MSG) {
 			Message: rp.RandTieUp(m.Character),
 		}
 		if err := c.SendMSG(resp); err != nil {
-			log.Println("error responding:", err)
+			log.Println("error sending tieup response:", err)
+		}
+	case strings.Contains(m.Message, "!tomato"):
+		resp := &flist.MSG{
+			Channel: m.Channel,
+			Message: rp.Tomato(m.Character),
+		}
+		if err := c.SendMSG(resp); err != nil {
+			log.Println("tomato error:", err)
 		}
 	}
 }
