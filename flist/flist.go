@@ -96,13 +96,17 @@ type MSG struct {
 	Channel   string `json:"channel"`
 }
 
-func (m *MSG) CmdEncode() ([]byte, error) {
-	return cmdEncode("MSG", m)
+func (m *MSG) CmdEncode() ([]byte, error)  { return cmdEncode("MSG", m) }
+func (m *MSG) CmdDecode(data []byte) error { return json.Unmarshal(data[3:], m) }
+
+type PRI struct {
+	Character string `json:"character,omitempty"`
+	Message   string `json:"message"`
+	Recipient string `json:"recipient,omitempty"`
 }
 
-func (m *MSG) CmdDecode(data []byte) error {
-	return json.Unmarshal(data[3:], m)
-}
+func (m *PRI) CmdEncode() ([]byte, error)  { return cmdEncode("PRI", m) }
+func (m *PRI) CmdDecode(data []byte) error { return json.Unmarshal(data[3:], m) }
 
 type Client struct {
 	mu        sync.Mutex
@@ -201,6 +205,18 @@ func (c *Client) SendMSG(msg *MSG) error {
 
 	if err := c.writeMessage(data); err != nil {
 		return fmt.Errorf("SendMSG error: %v", err)
+	}
+	return nil
+}
+
+func (c *Client) SendPRI(pri *PRI) error {
+	data, err := pri.CmdEncode()
+	if err != nil {
+		return fmt.Errorf("PRI encode failed: %v", err)
+	}
+
+	if err := c.writeMessage(data); err != nil {
+		return fmt.Errorf("SendPRI error: %v", err)
 	}
 	return nil
 }

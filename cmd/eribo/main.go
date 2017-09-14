@@ -15,6 +15,7 @@ import (
 	"github.com/kusubooru/eribo/eribo"
 	"github.com/kusubooru/eribo/eribo/mysql"
 	"github.com/kusubooru/eribo/flist"
+	"github.com/kusubooru/eribo/rp"
 )
 
 const (
@@ -84,9 +85,11 @@ func main() {
 	// Prepare channel for messages.
 	msgch := make(chan *flist.MSG, 10)
 	defer close(msgch)
+	prich := make(chan *flist.PRI, 10)
+	defer close(prich)
 
-	go readMessages(c, msgch, doneRead)
-	go handleMessages(c, store, msgch, doneHandle)
+	go readMessages(c, msgch, prich, doneRead)
+	go handleMessages(c, store, msgch, prich, doneHandle)
 
 	// Login to F-list.
 	if err := c.Identify(*account, *password, *character); err != nil {
@@ -121,7 +124,7 @@ func waitForInterrupt(c *flist.Client, doneRead, doneHandle chan struct{}) {
 	}
 }
 
-func readMessages(c *flist.Client, sender chan<- *flist.MSG, done chan struct{}) {
+func readMessages(c *flist.Client, msgch chan<- *flist.MSG, prich chan<- *flist.PRI, done chan struct{}) {
 	for {
 		select {
 		case <-done:
@@ -137,7 +140,9 @@ func readMessages(c *flist.Client, sender chan<- *flist.MSG, done chan struct{})
 			}
 			switch t := cmd.(type) {
 			case *flist.MSG:
-				sender <- t
+				msgch <- t
+			case *flist.PRI:
+				prich <- t
 			case *flist.PIN:
 				if err := c.SendPIN(); err != nil {
 					log.Println("send PIN failed:", err)
@@ -147,13 +152,13 @@ func readMessages(c *flist.Client, sender chan<- *flist.MSG, done chan struct{})
 	}
 }
 
-func handleMessages(c *flist.Client, store eribo.Store, messages <-chan *flist.MSG, done chan struct{}) {
+func handleMessages(c *flist.Client, store eribo.Store, msgch <-chan *flist.MSG, prich <-chan *flist.PRI, done chan struct{}) {
 	for {
 		select {
 		case <-done:
 			log.Println("done handling")
 			return
-		case msg := <-messages:
+		case msg := <-msgch:
 			urls := xurls.Strict.FindAllString(msg.Message, -1)
 			if len(urls) != 0 {
 				m := &eribo.Message{Channel: msg.Channel, Player: msg.Character, Message: msg.Message}
@@ -162,6 +167,10 @@ func handleMessages(c *flist.Client, store eribo.Store, messages <-chan *flist.M
 				}
 			}
 			respond(c, msg)
+		case pri := <-prich:
+			if err := gatherFeedback(c, store, pri); err != nil {
+				log.Println("gather feedback err:", err)
+			}
 		}
 	}
 }
@@ -171,10 +180,31 @@ func respond(c *flist.Client, m *flist.MSG) {
 	case strings.Contains(m.Message, "!tieup"):
 		resp := &flist.MSG{
 			Channel: m.Channel,
-			Message: fmt.Sprintf("/me ties %s up like a salami.", m.Character),
+			Message: rp.RandTieUp(m.Character),
 		}
 		if err := c.SendMSG(resp); err != nil {
 			log.Println("error responding:", err)
 		}
 	}
+}
+
+func gatherFeedback(c *flist.Client, store eribo.Store, pri *flist.PRI) error {
+	if !strings.Contains(pri.Message, "!feedback") {
+		return nil
+	}
+	f := &eribo.Feedback{
+		Player:  pri.Character,
+		Message: pri.Message,
+	}
+	if err := store.AddFeedback(f); err != nil {
+		return fmt.Errorf("error storing feedback: %v", err)
+	}
+	resp := &flist.PRI{
+		Recipient: pri.Character,
+		Message:   rp.RandFeedback(pri.Character),
+	}
+	if err := c.SendPRI(resp); err != nil {
+		return fmt.Errorf("error sending feedback response: %v", err)
+	}
+	return nil
 }
