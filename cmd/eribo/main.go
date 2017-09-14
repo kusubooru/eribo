@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 
 	"mvdan.cc/xurls"
 
@@ -85,7 +86,7 @@ func main() {
 	defer close(msgch)
 
 	go readMessages(c, msgch, doneRead)
-	go handleMessages(store, msgch, doneHandle)
+	go handleMessages(c, store, msgch, doneHandle)
 
 	// Login to F-list.
 	if err := c.Identify(*account, *password, *character); err != nil {
@@ -146,7 +147,7 @@ func readMessages(c *flist.Client, sender chan<- *flist.MSG, done chan struct{})
 	}
 }
 
-func handleMessages(store eribo.Store, messages <-chan *flist.MSG, done chan struct{}) {
+func handleMessages(c *flist.Client, store eribo.Store, messages <-chan *flist.MSG, done chan struct{}) {
 	for {
 		select {
 		case <-done:
@@ -160,7 +161,20 @@ func handleMessages(store eribo.Store, messages <-chan *flist.MSG, done chan str
 					log.Println("error storing message:", err)
 				}
 			}
-			fmt.Println("--->", msg)
+			respond(c, msg)
+		}
+	}
+}
+
+func respond(c *flist.Client, m *flist.MSG) {
+	switch {
+	case strings.Contains(m.Message, "!tieup"):
+		resp := &flist.MSG{
+			Channel: m.Channel,
+			Message: fmt.Sprintf("/me ties %s up like a salami.", m.Character),
+		}
+		if err := c.SendMSG(resp); err != nil {
+			log.Println("error responding:", err)
 		}
 	}
 }

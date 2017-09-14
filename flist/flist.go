@@ -91,7 +91,7 @@ type channel struct {
 }
 
 type MSG struct {
-	Character string `json:"character"`
+	Character string `json:"character,omitempty"`
 	Message   string `json:"message"`
 	Channel   string `json:"channel"`
 }
@@ -185,6 +185,24 @@ func DecodeCommand(data []byte) (Command, error) {
 	default:
 		return nil, ErrUnknownCmd
 	}
+}
+
+func (c *Client) writeMessage(data []byte) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.ws.WriteMessage(websocket.TextMessage, data)
+}
+
+func (c *Client) SendMSG(msg *MSG) error {
+	data, err := msg.CmdEncode()
+	if err != nil {
+		return fmt.Errorf("MSG encode failed: %v", err)
+	}
+
+	if err := c.writeMessage(data); err != nil {
+		return fmt.Errorf("SendMSG error: %v", err)
+	}
+	return nil
 }
 
 func (c *Client) Identify(account, password, character string) error {
