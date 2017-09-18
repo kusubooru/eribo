@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 
 	"mvdan.cc/xurls"
@@ -35,18 +36,29 @@ func defaultAddr(addr string, testServer, insecure bool) string {
 	return addr
 }
 
+var theVersion = "devel"
+
 func main() {
 	var (
-		insecure   = flag.Bool("insecure", false, "use insecure ws:// websocket instead of wss://")
-		testServer = flag.Bool("testserver", false, "connect to test server instead of production")
-		addr       = flag.String("addr", "wss://chat.f-list.net:9799", "websocket address to connect")
-		account    = flag.String("account", "", "websocket address to connect")
-		password   = flag.String("password", "", "websocket address to connect")
-		character  = flag.String("character", "", "websocket address to connect")
-		dataSource = flag.String("datasource", "", "MySQL datasource")
-		joinRoom   = flag.String("join", "", "exact title of an open private room to join")
+		insecure    = flag.Bool("insecure", false, "use insecure ws:// websocket instead of wss://")
+		testServer  = flag.Bool("testserver", false, "connect to test server instead of production")
+		addr        = flag.String("addr", "wss://chat.f-list.net:9799", "websocket address to connect")
+		account     = flag.String("account", "", "websocket address to connect")
+		password    = flag.String("password", "", "websocket address to connect")
+		character   = flag.String("character", "", "websocket address to connect")
+		dataSource  = flag.String("datasource", "", "MySQL datasource")
+		joinRoom    = flag.String("join", "", "exact title of an open private room to join")
+		showVersion = flag.Bool("v", false, "print program version")
+		versionArg  bool
 	)
 	flag.Parse()
+
+	versionArg = len(os.Args) > 1 && os.Args[1] == "version"
+	if *showVersion || versionArg {
+		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], theVersion, runtime.Version())
+		return
+	}
+
 	if *dataSource == "" {
 		log.Println("Database datasource not provided, exiting...")
 		log.Fatal("Use -datasource='username:password@(host:port)/database?parseTime=true'")
