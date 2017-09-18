@@ -18,10 +18,6 @@ import (
 	"github.com/kusubooru/eribo/rp"
 )
 
-const (
-	targetChannel = "ADH-c63dd350865f6eb33043"
-)
-
 func defaultAddr(addr string, testServer, insecure bool) string {
 	switch {
 	default:
@@ -48,6 +44,7 @@ func main() {
 		password   = flag.String("password", "", "websocket address to connect")
 		character  = flag.String("character", "", "websocket address to connect")
 		dataSource = flag.String("datasource", "", "MySQL datasource")
+		joinRoom   = flag.String("join", "", "exact title of an open private room to join")
 	)
 	flag.Parse()
 	if *dataSource == "" {
@@ -87,12 +84,20 @@ func main() {
 	defer close(msgch)
 	prich := make(chan *flist.PRI, 10)
 	defer close(prich)
+	orsch := make(chan *flist.ORS, 10)
+	defer close(orsch)
 
-	go readMessages(c, msgch, prich, doneRead)
-	go handleMessages(c, store, msgch, prich, doneHandle)
+	go readMessages(c, msgch, prich, orsch, doneRead)
+	go handleMessages(c, store, *joinRoom, msgch, prich, orsch, doneHandle)
 
 	// Login to F-list.
 	if err := c.Identify(*account, *password, *character); err != nil {
+		log.Println(err)
+		return
+	}
+
+	// Request open private rooms.
+	if err := c.SendORS(); err != nil {
 		log.Println(err)
 		return
 	}
@@ -124,7 +129,13 @@ func waitForInterrupt(c *flist.Client, doneRead, doneHandle chan struct{}) {
 	}
 }
 
-func readMessages(c *flist.Client, msgch chan<- *flist.MSG, prich chan<- *flist.PRI, done chan struct{}) {
+func readMessages(
+	c *flist.Client,
+	msgch chan<- *flist.MSG,
+	prich chan<- *flist.PRI,
+	orsch chan<- *flist.ORS,
+	done chan struct{},
+) {
 	for {
 		select {
 		case <-done:
@@ -133,7 +144,7 @@ func readMessages(c *flist.Client, msgch chan<- *flist.MSG, prich chan<- *flist.
 		case message := <-c.Messenger:
 			cmd, err := flist.DecodeCommand(message)
 			if err == flist.ErrUnknownCmd && len(message) != 0 {
-				fmt.Println("got:", string(message))
+				//fmt.Println("got:", string(message))
 			}
 			if err != nil && err != flist.ErrUnknownCmd {
 				log.Println("cmd decode error:", err)
@@ -143,6 +154,8 @@ func readMessages(c *flist.Client, msgch chan<- *flist.MSG, prich chan<- *flist.
 				msgch <- t
 			case *flist.PRI:
 				prich <- t
+			case *flist.ORS:
+				orsch <- t
 			case *flist.PIN:
 				if err := c.SendPIN(); err != nil {
 					log.Println("send PIN failed:", err)
@@ -152,7 +165,15 @@ func readMessages(c *flist.Client, msgch chan<- *flist.MSG, prich chan<- *flist.
 	}
 }
 
-func handleMessages(c *flist.Client, store eribo.Store, msgch <-chan *flist.MSG, prich <-chan *flist.PRI, done chan struct{}) {
+func handleMessages(
+	c *flist.Client,
+	store eribo.Store,
+	roomTitle string,
+	msgch <-chan *flist.MSG,
+	prich <-chan *flist.PRI,
+	orsch <-chan *flist.ORS,
+	done chan struct{},
+) {
 	for {
 		select {
 		case <-done:
@@ -170,6 +191,15 @@ func handleMessages(c *flist.Client, store eribo.Store, msgch <-chan *flist.MSG,
 		case pri := <-prich:
 			if err := gatherFeedback(c, store, pri); err != nil {
 				log.Println("gather feedback err:", err)
+			}
+		case ors := <-orsch:
+			for _, ch := range ors.Channels {
+				if ch.Title == roomTitle {
+					jch := &flist.JCH{Channel: ch.Name}
+					if err := c.SendJCH(jch); err != nil {
+						log.Println("error joining private room %q: %v", roomTitle, err)
+					}
+				}
 			}
 		}
 	}

@@ -72,23 +72,28 @@ func NewIDN(account, ticket, character, clientName, clientVersion string) *IDN {
 	}
 }
 
-func (c *IDN) CmdEncode() ([]byte, error) {
-	return cmdEncode("IDN", c)
-}
+func (c *IDN) CmdEncode() ([]byte, error)  { return cmdEncode("IDN", c) }
+func (c *IDN) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
-func (c *IDN) CmdDecode(data []byte) error {
-	return cmdDecode(data, c)
-}
-
-type channels struct {
-	Channels []channel `json:"channels"`
-}
-
-type channel struct {
+type Channel struct {
 	Name       string `json:"name"`
 	Title      string `json:"title"`
 	Characters int    `json:"characters"`
 }
+
+type ORS struct {
+	Channels []Channel `json:"channels,omitempty"`
+}
+
+func (c *ORS) CmdEncode() ([]byte, error)  { return cmdEncode("ORS", c) }
+func (c *ORS) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+
+type JCH struct {
+	Channel string `json:"channel"`
+}
+
+func (c *JCH) CmdEncode() ([]byte, error)  { return cmdEncode("JCH", c) }
+func (c *JCH) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 type MSG struct {
 	Character string `json:"character,omitempty"`
@@ -183,6 +188,18 @@ func DecodeCommand(data []byte) (Command, error) {
 			return nil, fmt.Errorf("MSG decode: %v", err)
 		}
 		return msg, nil
+	case isCmd(data, "PRI"):
+		pri := new(PRI)
+		if err := pri.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("PRI decode: %v", err)
+		}
+		return pri, nil
+	case isCmd(data, "ORS"):
+		ors := new(ORS)
+		if err := ors.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("ORS decode: %v", err)
+		}
+		return ors, nil
 	case isCmd(data, "PIN"):
 		pin := new(PIN)
 		return pin, nil
@@ -219,6 +236,22 @@ func (c *Client) SendPRI(pri *PRI) error {
 		return fmt.Errorf("SendPRI error: %v", err)
 	}
 	return nil
+}
+
+func (c *Client) SendJCH(jch *JCH) error {
+	data, err := jch.CmdEncode()
+	if err != nil {
+		return fmt.Errorf("JCH encode failed: %v", err)
+	}
+
+	if err := c.writeMessage(data); err != nil {
+		return fmt.Errorf("SendJCH error: %v", err)
+	}
+	return nil
+}
+
+func (c *Client) SendORS() error {
+	return c.writeMessage([]byte("ORS"))
 }
 
 func (c *Client) Identify(account, password, character string) error {
