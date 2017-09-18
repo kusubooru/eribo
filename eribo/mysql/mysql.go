@@ -30,6 +30,9 @@ func (db *EriboStore) createSchema() error {
 	if _, err := db.Exec(tableFeedback); err != nil {
 		return err
 	}
+	if _, err := db.Exec(tableLog); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -41,6 +44,9 @@ func (db *EriboStore) dropSchema() error {
 		return err
 	}
 	if _, err := db.Exec(`DROP TABLE feedback`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`DROP TABLE log`); err != nil {
 		return err
 	}
 	return nil
@@ -72,6 +78,15 @@ CREATE TABLE IF NOT EXISTS feedback (
 	id SERIAL,
 	message TEXT NOT NULL,
 	player VARCHAR(255) NOT NULL,
+	created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id)
+)`
+	tableLog = `
+CREATE TABLE IF NOT EXISTS log (
+	id SERIAL,
+	command VARCHAR(255) NOT NULL,
+	player VARCHAR(255) NOT NULL,
+	channel VARCHAR(255) NOT NULL DEFAULT '',
 	created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (id)
 )`

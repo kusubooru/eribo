@@ -74,3 +74,11 @@ func (db *EriboStore) AddFeedback(f *eribo.Feedback) error {
 	}
 	return nil
 }
+
+func (db *EriboStore) Log(e *eribo.Event) error {
+	_, err := db.Exec("INSERT INTO log(command, player, channel) VALUES (?, ?, ?)", e.Command, e.Player, e.Channel)
+	if err != nil {
+		return err
+	}
+	return nil
+}

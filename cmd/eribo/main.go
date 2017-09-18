@@ -187,7 +187,7 @@ func handleMessages(
 					log.Println("error storing message:", err)
 				}
 			}
-			respond(c, msg)
+			respond(c, store, msg)
 		case pri := <-prich:
 			if err := gatherFeedback(c, store, pri); err != nil {
 				log.Println("gather feedback err:", err)
@@ -205,7 +205,7 @@ func handleMessages(
 	}
 }
 
-func respond(c *flist.Client, m *flist.MSG) {
+func respond(c *flist.Client, store eribo.Store, m *flist.MSG) {
 	switch {
 	case strings.Contains(m.Message, "!tieup"):
 		resp := &flist.MSG{
@@ -215,6 +215,10 @@ func respond(c *flist.Client, m *flist.MSG) {
 		if err := c.SendMSG(resp); err != nil {
 			log.Println("error sending tieup response:", err)
 		}
+		e := &eribo.Event{Command: "!tieup", Player: m.Character, Channel: m.Channel}
+		if err := store.Log(e); err != nil {
+			log.Println("error storing to log:", err)
+		}
 	case strings.Contains(m.Message, "!tomato"):
 		resp := &flist.MSG{
 			Channel: m.Channel,
@@ -222,6 +226,10 @@ func respond(c *flist.Client, m *flist.MSG) {
 		}
 		if err := c.SendMSG(resp); err != nil {
 			log.Println("tomato error:", err)
+		}
+		e := &eribo.Event{Command: "!tomato", Player: m.Character, Channel: m.Channel}
+		if err := store.Log(e); err != nil {
+			log.Println("error storing to log:", err)
 		}
 	}
 }
@@ -243,6 +251,10 @@ func gatherFeedback(c *flist.Client, store eribo.Store, pri *flist.PRI) error {
 	}
 	if err := c.SendPRI(resp); err != nil {
 		return fmt.Errorf("error sending feedback response: %v", err)
+	}
+	e := &eribo.Event{Command: "!feedback", Player: pri.Character}
+	if err := store.Log(e); err != nil {
+		return fmt.Errorf("error storing to log: %v", err)
 	}
 	return nil
 }
