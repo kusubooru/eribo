@@ -48,7 +48,7 @@ func RandFeedback(name string) string {
 var feedback = []string{
 	`/me bows politely, "Thank you for the feedback %s-sama".`,
 	`/me bows graciously, "Your feedback is highly appreciated %s-sama".`,
-	`/me nods affirmatively, "Understood %-sama. Your feedback has been recorded".`,
+	`/me nods affirmatively, "Understood %s-sama. Your feedback has been recorded".`,
 }
 
 func Tomato(name string) string {

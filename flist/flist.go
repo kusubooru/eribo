@@ -8,14 +8,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 
 	"github.com/gorilla/websocket"
 )
 
 const (
 	clientName    = "eri"
-	clientVersion = "0.1.0"
+	clientVersion = "0.2.0"
 )
 
 type CmdEncoder interface {
@@ -53,22 +52,22 @@ func (c *PIN) CmdEncode() ([]byte, error)  { return cmdEncode("PIN", nil) }
 func (c *PIN) CmdDecode(data []byte) error { return nil }
 
 type IDN struct {
-	Method        string `json:"method"`
-	Account       string `json:"account"`
-	Ticket        string `json:"ticket"`
+	Method        string `json:"method,omitempty"`
+	Account       string `json:"account,omitempty"`
+	Ticket        string `json:"ticket,omitempty"`
 	Character     string `json:"character"`
-	ClientName    string `json:"cname"`
-	ClientVersion string `json:"cversion"`
+	ClientName    string `json:"cname,omitempty"`
+	ClientVersion string `json:"cversion,omitempty"`
 }
 
-func NewIDN(account, ticket, character, clientName, clientVersion string) *IDN {
+func (c *Client) NewIDN(account, ticket, character string) *IDN {
 	return &IDN{
 		Method:        "ticket",
 		Account:       account,
 		Ticket:        ticket,
 		Character:     character,
-		ClientName:    clientName,
-		ClientVersion: clientVersion,
+		ClientName:    c.Name,
+		ClientVersion: c.Version,
 	}
 }
 
@@ -114,12 +113,9 @@ func (m *PRI) CmdEncode() ([]byte, error)  { return cmdEncode("PRI", m) }
 func (m *PRI) CmdDecode(data []byte) error { return json.Unmarshal(data[3:], m) }
 
 type Client struct {
-	mu        sync.Mutex
-	ws        *websocket.Conn
-	Messenger <-chan []byte
-	Quit      <-chan struct{}
-	Name      string
-	Version   string
+	ws      *websocket.Conn
+	Name    string
+	Version string
 }
 
 func (c *Client) Close() error {
@@ -127,14 +123,10 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) Disconnect() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	return c.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 }
 
 func (c *Client) SendPIN() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	return c.ws.WriteMessage(websocket.TextMessage, []byte("PIN"))
 }
 
@@ -153,25 +145,7 @@ func Connect(url string) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("dial: %v", err)
 	}
-
-	m := make(chan []byte, 100)
-	q := make(chan struct{})
-	go readMessages(ws, m, q)
-	return &Client{ws: ws, Messenger: m, Quit: q, Name: clientName, Version: clientVersion}, nil
-}
-
-func readMessages(ws *websocket.Conn, messenger chan<- []byte, quit chan<- struct{}) {
-	defer close(messenger)
-	defer func() {
-		quit <- struct{}{}
-	}()
-	for {
-		_, msg, err := ws.ReadMessage()
-		if err != nil {
-			return
-		}
-		messenger <- msg
-	}
+	return &Client{ws: ws, Name: clientName, Version: clientVersion}, nil
 }
 
 func isCmd(data []byte, cmdType string) bool {
@@ -182,6 +156,12 @@ var ErrUnknownCmd = errors.New("unknown command")
 
 func DecodeCommand(data []byte) (Command, error) {
 	switch {
+	case isCmd(data, "IDN"):
+		idn := new(IDN)
+		if err := idn.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("IDN decode: %v", err)
+		}
+		return idn, nil
 	case isCmd(data, "MSG"):
 		msg := new(MSG)
 		if err := msg.CmdDecode(data); err != nil {
@@ -209,8 +189,6 @@ func DecodeCommand(data []byte) (Command, error) {
 }
 
 func (c *Client) writeMessage(data []byte) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	return c.ws.WriteMessage(websocket.TextMessage, data)
 }
 
@@ -260,14 +238,12 @@ func (c *Client) Identify(account, password, character string) error {
 		return fmt.Errorf("could not get ticket: %v", err)
 	}
 
-	idn := NewIDN(account, ticket, character, c.Name, c.Version)
+	idn := c.NewIDN(account, ticket, character)
 	data, err := idn.CmdEncode()
 	if err != nil {
 		return fmt.Errorf("IDN encode failed: %v", err)
 	}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	if err := c.ws.WriteMessage(websocket.TextMessage, data); err != nil {
 		return fmt.Errorf("identify error: %v", err)
 	}

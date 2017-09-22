@@ -22,7 +22,7 @@ import (
 func defaultAddr(addr string, testServer, insecure bool) string {
 	switch {
 	default:
-		log.Printf("Using encrypted production server address: %q", addr)
+		//log.Printf("Using encrypted production server address: %q", addr)
 	case !testServer && insecure:
 		addr = "ws://chat.f-list.net:9722"
 		log.Printf("Using unencrypted production server address: %q", addr)
@@ -74,11 +74,6 @@ func main() {
 		log.Fatal("store error:", err)
 	}
 
-	doneRead := make(chan struct{})
-	defer close(doneRead)
-	doneHandle := make(chan struct{})
-	defer close(doneHandle)
-
 	// Connect to F-list.
 	c, err := flist.Connect(*addr)
 	if err != nil {
@@ -91,22 +86,27 @@ func main() {
 		}
 	}()
 
-	// Prepare channel for messages.
+	// Prepare channels to separate message types.
+	idnch := make(chan *flist.IDN)
 	msgch := make(chan *flist.MSG, 10)
-	defer close(msgch)
 	prich := make(chan *flist.PRI, 10)
-	defer close(prich)
 	orsch := make(chan *flist.ORS, 10)
-	defer close(orsch)
+	pinch := make(chan *flist.PIN)
+	quit := make(chan struct{})
 
-	go readMessages(c, msgch, prich, orsch, doneRead)
-	go handleMessages(c, store, *joinRoom, msgch, prich, orsch, doneHandle)
+	// The reader is responsible for closing the channels.
+	go readMessages(c, idnch, msgch, prich, orsch, pinch, quit)
 
 	// Login to F-list.
 	if err := c.Identify(*account, *password, *character); err != nil {
 		log.Println(err)
 		return
 	}
+	// Wait for identification because: "If you send any commands before
+	// identifying, you will be disconnected."
+	//
+	// https://wiki.f-list.net/F-Chat_Server_Commands#IDN
+	<-idnch
 
 	// Request open private rooms.
 	if err := c.SendORS(); err != nil {
@@ -114,82 +114,86 @@ func main() {
 		return
 	}
 
-	waitForInterrupt(c, doneRead, doneHandle)
+	handleMessages(c, store, *joinRoom, idnch, msgch, prich, orsch, pinch, quit)
 }
 
-// waitForInterrupt blocks and waits either for interrupt signal or for the
-// client to quit.
-func waitForInterrupt(c *flist.Client, doneRead, doneHandle chan struct{}) {
+// readMessages or "the reader" reads messages in a loop, sepearates them into
+// different F-list server command types and sends them to the appropriate
+// channels to be handled.
+func readMessages(
+	c *flist.Client,
+	idnch chan<- *flist.IDN,
+	msgch chan<- *flist.MSG,
+	prich chan<- *flist.PRI,
+	orsch chan<- *flist.ORS,
+	pinch chan<- *flist.PIN,
+	quit chan struct{},
+) {
+	defer close(idnch)
+	defer close(msgch)
+	defer close(prich)
+	defer close(orsch)
+	defer close(pinch)
+	defer close(quit)
+	for {
+		message, err := c.ReadMessage()
+		if err != nil {
+			log.Println("read message error:", err)
+			return
+		}
+		cmd, err := flist.DecodeCommand(message)
+		if err == flist.ErrUnknownCmd && len(message) != 0 {
+			//fmt.Println("got:", string(message))
+		}
+		if err != nil && err != flist.ErrUnknownCmd {
+			log.Println("cmd decode error:", err)
+		}
+		switch t := cmd.(type) {
+		case *flist.IDN:
+			idnch <- t
+		case *flist.MSG:
+			msgch <- t
+		case *flist.PRI:
+			prich <- t
+		case *flist.ORS:
+			orsch <- t
+		case *flist.PIN:
+			pinch <- t
+		}
+	}
+}
+
+// handleMessages receives different command types from the reader's channels
+// and responds accordingly. It also listens for the interrupt singal or for
+// the reader quitting due to error.
+func handleMessages(
+	c *flist.Client,
+	store eribo.Store,
+	roomTitle string,
+	idnch <-chan *flist.IDN,
+	msgch <-chan *flist.MSG,
+	prich <-chan *flist.PRI,
+	orsch <-chan *flist.ORS,
+	pinch <-chan *flist.PIN,
+	quit <-chan struct{},
+) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 	for {
 		select {
 		case <-interrupt:
-			log.Println("interrupt signal received, exiting...")
-			doneRead <- struct{}{}
-			doneHandle <- struct{}{}
+			log.Println("interrupt signal received...")
 			if err := c.Disconnect(); err != nil {
 				log.Println("disconnect error:", err)
 			}
+			log.Println("waiting for reader to quit...")
+			<-quit
+			log.Println("exiting...")
 			return
-		case <-c.Quit:
-			log.Println("disconnected")
-			doneRead <- struct{}{}
-			doneHandle <- struct{}{}
-			return
-		}
-	}
-}
-
-func readMessages(
-	c *flist.Client,
-	msgch chan<- *flist.MSG,
-	prich chan<- *flist.PRI,
-	orsch chan<- *flist.ORS,
-	done chan struct{},
-) {
-	for {
-		select {
-		case <-done:
-			log.Println("done reading")
-			return
-		case message := <-c.Messenger:
-			cmd, err := flist.DecodeCommand(message)
-			if err == flist.ErrUnknownCmd && len(message) != 0 {
-				//fmt.Println("got:", string(message))
-			}
-			if err != nil && err != flist.ErrUnknownCmd {
-				log.Println("cmd decode error:", err)
-			}
-			switch t := cmd.(type) {
-			case *flist.MSG:
-				msgch <- t
-			case *flist.PRI:
-				prich <- t
-			case *flist.ORS:
-				orsch <- t
-			case *flist.PIN:
-				if err := c.SendPIN(); err != nil {
-					log.Println("send PIN failed:", err)
-				}
-			}
-		}
-	}
-}
-
-func handleMessages(
-	c *flist.Client,
-	store eribo.Store,
-	roomTitle string,
-	msgch <-chan *flist.MSG,
-	prich <-chan *flist.PRI,
-	orsch <-chan *flist.ORS,
-	done chan struct{},
-) {
-	for {
-		select {
-		case <-done:
-			log.Println("done handling")
+		case <-quit:
+			// If the reader quits with an error, there's no point for the
+			// program to continue so it exists.
+			log.Println("reader quit")
 			return
 		case msg := <-msgch:
 			urls := xurls.Strict.FindAllString(msg.Message, -1)
@@ -213,6 +217,13 @@ func handleMessages(
 					}
 				}
 			}
+		case <-pinch:
+			if err := c.SendPIN(); err != nil {
+				log.Println("send PIN failed:", err)
+			}
+		case idn := <-idnch:
+			// Expecting IDN only once during identification.
+			log.Println("received IDN but shouldn't:", idn)
 		}
 	}
 }
