@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 
 	"github.com/gorilla/websocket"
@@ -78,6 +79,24 @@ type Channel struct {
 	Name       string `json:"name"`
 	Title      string `json:"title"`
 	Characters int    `json:"characters"`
+}
+
+type byTitle []Channel
+
+func (channels byTitle) Len() int           { return len(channels) }
+func (channels byTitle) Swap(i, j int)      { channels[i], channels[j] = channels[j], channels[i] }
+func (channels byTitle) Less(i, j int) bool { return channels[i].Title < channels[j].Title }
+
+func SortChannelsByTitle(channels []Channel) {
+	sort.Sort(byTitle(channels))
+}
+
+func FindChannel(channels []Channel, title string) *Channel {
+	i := sort.Search(len(channels), func(i int) bool { return channels[i].Title >= title })
+	if i < len(channels) && channels[i].Title == title {
+		return &channels[i]
+	}
+	return nil
 }
 
 type ORS struct {

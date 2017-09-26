@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -36,6 +37,15 @@ func defaultAddr(addr string, testServer, insecure bool) string {
 	return addr
 }
 
+func splitRoomTitles(s string) ([]string, error) {
+	var rooms []string
+	err := json.Unmarshal([]byte(s), &rooms)
+	if err != nil {
+		return nil, err
+	}
+	return rooms, nil
+}
+
 var theVersion = "devel"
 
 func main() {
@@ -47,7 +57,7 @@ func main() {
 		password    = flag.String("password", "", "websocket address to connect")
 		character   = flag.String("character", "", "websocket address to connect")
 		dataSource  = flag.String("datasource", "", "MySQL datasource")
-		joinRoom    = flag.String("join", "", "exact title of an open private room to join")
+		joinRooms   = flag.String("join", "", "open private `rooms` to join in JSON format e.g. "+`-join '["Room 1", "Room 2"]'`)
 		showVersion = flag.Bool("v", false, "print program version")
 		versionArg  bool
 	)
@@ -57,6 +67,12 @@ func main() {
 	if *showVersion || versionArg {
 		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], theVersion, runtime.Version())
 		return
+	}
+
+	roomTitles, err := splitRoomTitles(*joinRooms)
+	if err != nil {
+		log.Println(`-join [rooms] requires rooms to be in JSON format. Example: -join '["Room 1", "Room 2"]'`)
+		log.Fatal("error decoding rooms to join:", err)
 	}
 
 	if *dataSource == "" {
@@ -114,7 +130,7 @@ func main() {
 		return
 	}
 
-	handleMessages(c, store, *joinRoom, idnch, msgch, prich, orsch, pinch, quit)
+	handleMessages(c, store, roomTitles, idnch, msgch, prich, orsch, pinch, quit)
 }
 
 // readMessages or "the reader" reads messages in a loop, sepearates them into
@@ -169,7 +185,7 @@ func readMessages(
 func handleMessages(
 	c *flist.Client,
 	store eribo.Store,
-	roomTitle string,
+	roomTitles []string,
 	idnch <-chan *flist.IDN,
 	msgch <-chan *flist.MSG,
 	prich <-chan *flist.PRI,
@@ -209,11 +225,13 @@ func handleMessages(
 				log.Println("gather feedback err:", err)
 			}
 		case ors := <-orsch:
-			for _, ch := range ors.Channels {
-				if ch.Title == roomTitle {
+			flist.SortChannelsByTitle(ors.Channels)
+			for _, title := range roomTitles {
+				ch := flist.FindChannel(ors.Channels, title)
+				if ch != nil {
 					jch := &flist.JCH{Channel: ch.Name}
 					if err := c.SendJCH(jch); err != nil {
-						log.Println("error joining private room %q: %v", roomTitle, err)
+						log.Println("error joining private room %q: %v", title, err)
 					}
 				}
 			}
