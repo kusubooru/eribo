@@ -131,6 +131,26 @@ type PRI struct {
 func (m *PRI) CmdEncode() ([]byte, error)  { return cmdEncode("PRI", m) }
 func (m *PRI) CmdDecode(data []byte) error { return json.Unmarshal(data[3:], m) }
 
+type Status string
+
+const (
+	StatusOnline  = "online"
+	StatusLooking = "looking"
+	StatusBusy    = "busy"
+	StatusDND     = "dnd"
+	StatusIdle    = "idle"
+	StatusAway    = "away"
+)
+
+type STA struct {
+	Status    Status `json:"status"`
+	StatusMsg string `json:"statusmsg"`
+	Character string `json:"character,omitempty"`
+}
+
+func (c *STA) CmdEncode() ([]byte, error)  { return cmdEncode("STA", c) }
+func (c *STA) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+
 type Client struct {
 	ws      *websocket.Conn
 	Name    string
@@ -199,6 +219,12 @@ func DecodeCommand(data []byte) (Command, error) {
 			return nil, fmt.Errorf("ORS decode: %v", err)
 		}
 		return ors, nil
+	case isCmd(data, "STA"):
+		sta := new(STA)
+		if err := sta.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("STA decode: %v", err)
+		}
+		return sta, nil
 	case isCmd(data, "PIN"):
 		pin := new(PIN)
 		return pin, nil
@@ -249,6 +275,18 @@ func (c *Client) SendJCH(jch *JCH) error {
 
 func (c *Client) SendORS() error {
 	return c.writeMessage([]byte("ORS"))
+}
+
+func (c *Client) SendSTA(sta *STA) error {
+	data, err := sta.CmdEncode()
+	if err != nil {
+		return fmt.Errorf("STA encode failed: %v", err)
+	}
+
+	if err := c.writeMessage(data); err != nil {
+		return fmt.Errorf("SendSTA error: %v", err)
+	}
+	return nil
 }
 
 func (c *Client) Identify(account, password, character string) error {
