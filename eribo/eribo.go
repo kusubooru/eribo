@@ -1,6 +1,8 @@
 package eribo
 
-import "time"
+import (
+	"time"
+)
 
 type Image struct {
 	ID        int64
@@ -27,7 +29,7 @@ type Feedback struct {
 
 type Event struct {
 	ID      int64
-	Command string
+	Command Command
 	Player  string
 	Channel string
 	Created time.Time

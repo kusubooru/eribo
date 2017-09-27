@@ -248,38 +248,50 @@ func handleMessages(
 
 func respond(c *flist.Client, store eribo.Store, m *flist.MSG) {
 	switch {
-	case strings.HasPrefix(m.Message, "!tieup"):
+	case strings.HasPrefix(m.Message, eribo.CmdTieup.String()):
 		resp := &flist.MSG{
 			Channel: m.Channel,
 			Message: rp.RandTieUp(m.Character),
 		}
 		if err := c.SendMSG(resp); err != nil {
-			log.Println("error sending tieup response:", err)
+			log.Printf("error sending %v response: %v", eribo.CmdTieup, err)
 		}
-		e := &eribo.Event{Command: "!tieup", Player: m.Character, Channel: m.Channel}
+		e := &eribo.Event{Command: eribo.CmdTieup, Player: m.Character, Channel: m.Channel}
 		if err := store.Log(e); err != nil {
-			log.Println("error logging !tieup:", err)
+			log.Printf("error logging %v: %v", eribo.CmdTieup, err)
 		}
-	case strings.HasPrefix(m.Message, "!tomato"):
+	case strings.HasPrefix(m.Message, eribo.CmdTomato.String()):
 		resp := &flist.MSG{
 			Channel: m.Channel,
 			Message: rp.Tomato(m.Character),
 		}
 		if err := c.SendMSG(resp); err != nil {
-			log.Println("tomato error:", err)
+			log.Printf("error sending %v response: %v", eribo.CmdTomato, err)
 		}
-		e := &eribo.Event{Command: "!tomato", Player: m.Character, Channel: m.Channel}
+		e := &eribo.Event{Command: eribo.CmdTomato, Player: m.Character, Channel: m.Channel}
 		if err := store.Log(e); err != nil {
-			log.Println("error logging !tomato:", err)
+			log.Printf("error logging %v: %v", eribo.CmdTomato, err)
+		}
+	case strings.HasPrefix(m.Message, eribo.CmdTktool.String()):
+		resp := &flist.MSG{
+			Channel: m.Channel,
+			Message: rp.Tktool(m.Character),
+		}
+		if err := c.SendMSG(resp); err != nil {
+			log.Printf("error sending %v response: %v", eribo.CmdTktool, err)
+		}
+		e := &eribo.Event{Command: eribo.CmdTktool, Player: m.Character, Channel: m.Channel}
+		if err := store.Log(e); err != nil {
+			log.Printf("error logging %v: %v", eribo.CmdTktool, err)
 		}
 	}
 }
 
 func gatherFeedback(c *flist.Client, store eribo.Store, pri *flist.PRI) error {
-	if !strings.HasPrefix(pri.Message, "!feedback ") {
+	if !strings.HasPrefix(pri.Message, eribo.CmdFeedback.String()+" ") {
 		return nil
 	}
-	message := strings.TrimPrefix(pri.Message, "!feedback ")
+	message := strings.TrimPrefix(pri.Message, eribo.CmdFeedback.String()+" ")
 	message = strings.TrimSpace(message)
 	if message == "" {
 		return nil
@@ -296,11 +308,11 @@ func gatherFeedback(c *flist.Client, store eribo.Store, pri *flist.PRI) error {
 		Message:   rp.RandFeedback(pri.Character),
 	}
 	if err := c.SendPRI(resp); err != nil {
-		return fmt.Errorf("error sending feedback response: %v", err)
+		return fmt.Errorf("error sending %v response: %v", eribo.CmdFeedback, err)
 	}
-	e := &eribo.Event{Command: "!feedback", Player: pri.Character}
+	e := &eribo.Event{Command: eribo.CmdFeedback, Player: pri.Character}
 	if err := store.Log(e); err != nil {
-		return fmt.Errorf("error storing to log: %v", err)
+		log.Printf("error logging %v: %v", eribo.CmdFeedback, err)
 	}
 	return nil
 }
