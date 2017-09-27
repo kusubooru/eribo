@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -336,4 +337,37 @@ func GetTicket(account, password string) (string, error) {
 		return "", fmt.Errorf("ticket contains error: %s", t.Error)
 	}
 	return t.Ticket, nil
+}
+
+type CharacterData struct {
+	ID           int64             `json:"id"`
+	Name         string            `json:"name"`
+	Description  string            `json:"description"`
+	Views        int               `json:"views"`
+	CustomsFirst bool              `json:"customs_first"`
+	CustomTitle  string            `json:"custom_title"`
+	CreatedAt    time.Time         `json:"created_at"`
+	UpdatedAt    time.Time         `json:"updated_at"`
+	Infotags     map[string]string `json:"infotags"`
+}
+
+func GetCharacterData(name, account, ticket string) (*CharacterData, error) {
+	u := "https://www.f-list.net/json/api/character-data.php"
+
+	v := url.Values{}
+	v.Add("name", name)
+	v.Add("account", account)
+	v.Add("ticket", ticket)
+
+	body := strings.NewReader(v.Encode())
+	resp, err := http.Post(u, "application/x-www-form-urlencoded", body)
+	if err != nil {
+		return nil, fmt.Errorf("post character data failed: %v", err)
+	}
+
+	d := new(CharacterData)
+	if err := json.NewDecoder(resp.Body).Decode(d); err != nil {
+		return nil, fmt.Errorf("could not decode character data: %v", err)
+	}
+	return d, nil
 }
