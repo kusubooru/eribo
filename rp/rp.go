@@ -40,6 +40,31 @@ var tieUps = []string{
 	in a pair of leather cuffs. Then sits them down, placing their ankles in
 	the stocks and finally locking them up, leaving their [u]feet[/u]
 	vulnerable.`,
+	`/me bends %s forward into an awaiting standing pillory and shuts it on
+	their neck and wrists. A spreader bar is then cuffed to their ankles,
+	forcing their legs far apart. With their [u]sides[/u] and [u]legs[/u]
+	rather vulnerable, they cannot kick effectively nor see behind them.`,
+	`/me suddenly pushes %s backwards into an open coffin with two slots at the
+	bottom. Their ankles get caught in the slots before the lid automatically
+	slams shut and locks itself, leaving their [u]feet[/u] exposed on the
+	outside.`,
+	`/me extends seven spider-like legs from behind and uses them to lift %s
+	into the air. An eighth leg is revealed to be pulling silk webbing up from
+	a large spool, and it quickly rolls them up, leaving only their
+	[u]stomach[/u] and nose exposed. It then sticks their back against a wall
+	so that they can't wiggle away.`,
+	`/me puts on a cowboy hat and swings a lasso onto %s before drawing them in
+	and wrestling them to the ground. The excess rope is wound around their
+	ankles while their wrists are positioned behind them, and the slack is
+	tightened, forcing them into a hogtie that renders their [u]sides[/u] and
+	[u]feet[/u] quite vulnerable.`,
+	`/me tightens a belt around %s that has a leather cuff dangling from either
+	side. Then, it forces their hands down into the awaiting cuffs and buckles
+	them shut, leaving their hands trapped by their waist.`,
+	`/me deems %s is getting too unruly and takes measures to protect them. A
+	straitjacket is pulled onto them and buckled shut, forcing their arms
+	crossed in front of themselves. Although their upperbody is secure and
+	protected, their [u]legs[/u] and [u]feet[/u] remain uncovered.`,
 }
 
 func RandFeedback(name string) string {
