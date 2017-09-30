@@ -50,14 +50,18 @@ func (c Command) HasPrefix(s string) bool {
 	return strings.HasPrefix(s, c.String())
 }
 
-func (c Command) Value() (driver.Value, error) { return string(c), nil }
+func (c Command) Value() (driver.Value, error) { return c.String(), nil }
 func (c *Command) Scan(value interface{}) error {
 	if value == nil {
 		*c = CmdUnknown
 		return nil
 	}
-	if v, ok := value.(string); ok {
+	switch v := value.(type) {
+	case string:
 		*c = makeCommand(v)
+		return nil
+	case []byte:
+		*c = makeCommand(string(v))
 		return nil
 	}
 	return fmt.Errorf("cannot scan Command value")

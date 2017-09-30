@@ -82,3 +82,12 @@ func (db *EriboStore) Log(e *eribo.Event) error {
 	}
 	return nil
 }
+
+func (db *EriboStore) GetLog(id int64) (*eribo.Event, error) {
+	e := &eribo.Event{}
+	const query = `SELECT * FROM log where id = ?`
+	if err := db.Get(e, query, id); err != nil {
+		return nil, err
+	}
+	return e, nil
+}

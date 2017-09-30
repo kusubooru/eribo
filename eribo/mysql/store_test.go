@@ -29,7 +29,7 @@ func TestAddMessageWithURLs(t *testing.T) {
 		t.Fatal("GetImages failed:", err)
 	}
 	if got, want := len(images), 2; got != want {
-		t.Fatal("GetImages produced %d results, want %d", got, want)
+		t.Fatalf("GetImages produced %d results, want %d", got, want)
 	}
 	want := []*eribo.Image{
 		{ID: 1, URL: "http://url1", MessageID: 1, Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz"}},
@@ -81,5 +81,35 @@ func TestAddFeedback(t *testing.T) {
 		data, _ = json.Marshal(want)
 		fmt.Println(string(data))
 		t.Fatalf("AddFeedback = \nhave: %#v\nwant: %#v", have, want)
+	}
+}
+
+func TestLog(t *testing.T) {
+	s := setup(t)
+	defer teardown(t, s)
+
+	e := &eribo.Event{
+		Command: eribo.CmdTomato,
+		Player:  "foo",
+	}
+	if err := s.Log(e); err != nil {
+		t.Fatal("Log failed:", err)
+	}
+
+	have, err := s.GetLog(1)
+	if err != nil {
+		t.Fatal("GetLog failed:", err)
+	}
+	want := &eribo.Event{ID: 1, Player: "foo", Command: eribo.CmdTomato}
+
+	// ignore created
+	have.Created = time.Time{}
+
+	if !reflect.DeepEqual(have, want) {
+		data, _ := json.Marshal(have)
+		fmt.Println(string(data))
+		data, _ = json.Marshal(want)
+		fmt.Println(string(data))
+		t.Fatalf("Log = \nhave: %#v\nwant: %#v", have, want)
 	}
 }
