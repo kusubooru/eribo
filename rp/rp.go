@@ -7,6 +7,64 @@ import (
 	"time"
 )
 
+type Color int
+
+const (
+	Colorless Color = iota
+	Red
+	Blue
+	Green
+	Yellow
+	Orange
+	Purple
+	Pink
+	Fuchsia
+	Black
+	White
+	Emerald
+	Brown
+	Violet
+	Gray
+	Turquoise
+)
+
+func (c Color) String() string {
+	switch c {
+	default:
+		return "colorless"
+	case Red:
+		return "red"
+	case Blue:
+		return "blue"
+	case Green:
+		return "green"
+	case Yellow:
+		return "yellow"
+	case Orange:
+		return "orange"
+	case Purple:
+		return "purple"
+	case Pink:
+		return "pink"
+	case Fuchsia:
+		return "fuchsia"
+	case Black:
+		return "black"
+	case White:
+		return "white"
+	case Emerald:
+		return "emerald"
+	case Brown:
+		return "brown"
+	case Violet:
+		return "violet"
+	case Gray:
+		return "gray"
+	case Turquoise:
+		return "turquoise"
+	}
+}
+
 func newRand(n int) int {
 	seed := time.Now().UnixNano()
 	r := rand.New(rand.NewSource(seed))
@@ -15,6 +73,7 @@ func newRand(n int) int {
 
 func clean(s string) string {
 	s = strings.Replace(s, "\n", "", -1)
+	s = strings.Replace(s, "\t\t", " ", -1)
 	s = strings.Replace(s, "\t", " ", -1)
 	return s
 }
@@ -147,33 +206,70 @@ func Tomato(name string) string {
 	return fmt.Sprintf("/me gives a fresh-looking tomato to %s.", name)
 }
 
-var tktools = []string{
-	`/me hands %s a stiff, long, gray, [u]goose feather[/u] with a pointy
-	tip.`,
-	`/me hands %s a jaunty, enormous, white, [u]ostrich feather[/u] forming a
-	slight curve at the top. Its shaft at the bottom, ends into a sharp
-	quill.`,
-	`/me hands %s a fluffy, long, pink, [u]chandelle feather boa[/u]. With the
-	slightest movement, its plumes animate in an almost hypnotic way.`,
-	`/me hands %s an aqua-colored [u]electric flosser[/u], equipped with a
-	fully charged battery and a flexible, nylon tip.`,
-	`/me hands %s an [u]electric toothbrush[/u]. The brush is round-shaped. Its
-	body is light-blue and contains lots of colorful smiley faces.`,
-	`/me hands %s a small, brown [u]paintbrush[/u] with soft bristles and a
-	pointy tip. On its black, wooden body, there are the characters 搔癢折磨
-	inscriped in crimson red.`,
-	`/me hands %s a [u]feather duster[/u] which looks like a matching accessory
-	for a maid uniform. Its long, gray, ostrich feathers look very soft and
-	delicate.`,
-	`/me hands %s a pair of black [u]leather gloves[/u] with long feathers
-	attached to each fingertip.`,
-	`/me hands %s a modified [u]Hitachi Magic Wand[/u]. This model seems to be
-	cordless and its switch seems to be altered. Apart from the traditional, O,
-	I and II power levels, this switch supports two extra levels indicated as
-	III and XXX.`,
+type Tktool struct {
+	Raw    string
+	Colors []Color
 }
 
-func Tktool(name string) string {
-	s := tktools[newRand(len(tktools))]
-	return fmt.Sprintf(clean(s), name)
+func (t Tktool) Apply(user string, c Color) string {
+	if t.Colors != nil {
+		return fmt.Sprintf(clean(t.Raw), user, c)
+	}
+	return fmt.Sprintf(clean(t.Raw), user)
+}
+
+var tktools = []Tktool{
+	{
+		Colors: []Color{Gray, White, Black},
+		Raw: `/me hands %s a stiff, long, %s, [u]goose feather[/u] with a
+		pointy tip.`,
+	},
+	{
+		Colors: []Color{Black, White, Red, Orange, Blue, Turquoise, Brown, Yellow, Fuchsia, Pink, Purple, Violet, Green},
+		Raw: `/me hands %s a jaunty, enormous, %s, [u]ostrich feather[/u]
+		forming a slight curve at the top. Its shaft at the bottom, ends into a
+		sharp quill.`,
+	},
+	{
+		Colors: []Color{Pink, Fuchsia, Purple, Black, Emerald, Red, Yellow, Blue},
+		Raw: `/me hands %s a fluffy, long, %s, [u]chandelle feather boa[/u].
+		With the slightest movement, its plumes animate in an almost hypnotic
+		way.`,
+	},
+	{
+		Raw: `/me hands %s an aqua-colored [u]electric flosser[/u], equipped
+		with a fully charged battery and a flexible, nylon tip.`,
+	},
+	{
+		Raw: `/me hands %s an [u]electric toothbrush[/u]. The brush is
+		round-shaped. Its body is light-blue and contains lots of colorful
+		smiley faces.`,
+	},
+	{
+		Raw: `/me hands %s a small, brown [u]paintbrush[/u] with soft bristles
+		and a pointy tip. On its black, wooden body, there are the characters
+		搔癢折磨 inscriped in crimson red.`,
+	},
+	{
+		Colors: []Color{Gray, White, Black, Brown},
+		Raw: `/me hands %s a [u]feather duster[/u] which looks like a matching
+		accessory for a maid uniform. Its long, %s, ostrich feathers look
+		very soft and delicate.`,
+	},
+	{
+		Colors: []Color{Brown, Black, Violet, Purple, Red},
+		Raw: `/me hands %s a pair of %s [u]leather gloves[/u] with long
+		feathers attached to each fingertip.`,
+	},
+	{
+		Raw: `/me hands %s a modified [u]Hitachi Magic Wand[/u]. This model
+		seems to be cordless and its switch seems to be altered. Apart from the
+		traditional, O, I and II power levels, this switch supports two extra
+		levels indicated as III and XXX.`,
+	},
+}
+
+func RandTktool(name string) string {
+	t := tktools[newRand(len(tktools))]
+	return t.Apply(name, t.Colors[newRand(len(t.Colors))])
 }

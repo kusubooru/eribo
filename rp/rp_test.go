@@ -7,14 +7,41 @@ import (
 
 func TestTieUps(t *testing.T) {
 	for _, tt := range tieUps {
-		if !strings.HasPrefix(tt, "/me ") {
-			t.Errorf("expected '/me ' prefix on %q", tt)
-		}
-		if got, want := strings.Count(tt, "%s"), 1; got != want {
-			t.Errorf("Number of "+`'%s'`+" in phrase = %d, want %d, on %q", got, want, tt)
-		}
-		if got, want := strings.Count(tt, "[u]"), strings.Count(tt, "[/u]"); got != want {
-			t.Errorf("Number of '[u]' = %d, number of '[/u]' = %d, on %q", got, want, tt)
+		checkEmote(t, tt)
+		checkBBcode(t, tt)
+		checkVerbCount(t, tt, "%s", 1)
+	}
+}
+
+func checkEmote(t *testing.T, s string) {
+	t.Helper()
+	if !strings.HasPrefix(s, "/me ") {
+		t.Errorf("expected '/me ' prefix, message is: %q", s)
+	}
+}
+
+func checkBBcode(t *testing.T, s string) {
+	t.Helper()
+	if got, want := strings.Count(s, "[u]"), strings.Count(s, "[/u]"); got != want {
+		t.Errorf("Number of '[u]' = %d, number of '[/u]' = %d, message is: %q", got, want, s)
+	}
+}
+
+func checkVerbCount(t *testing.T, s, verb string, n int) {
+	t.Helper()
+	if got, want := strings.Count(s, verb), n; got != want {
+		t.Errorf("Number of %q = %d, want %d, message is: %q", verb, got, want, s)
+	}
+}
+
+func TestTktools(t *testing.T) {
+	for _, tt := range tktools {
+		checkEmote(t, tt.Raw)
+		checkBBcode(t, tt.Raw)
+		if tt.Colors != nil {
+			checkVerbCount(t, tt.Raw, "%s", 2)
+		} else {
+			checkVerbCount(t, tt.Raw, "%s", 1)
 		}
 	}
 }

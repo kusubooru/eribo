@@ -275,7 +275,7 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG) {
 	case strings.HasPrefix(m.Message, eribo.CmdTktool.String()):
 		resp := &flist.MSG{
 			Channel: m.Channel,
-			Message: rp.Tktool(m.Character),
+			Message: rp.RandTktool(m.Character),
 		}
 		if err := c.SendMSG(resp); err != nil {
 			log.Printf("error sending %v response: %v", eribo.CmdTktool, err)
