@@ -14,6 +14,7 @@ const (
 	CmdTieup
 	CmdFeedback
 	CmdTktool
+	CmdVonprove
 )
 
 func (c Command) String() string {
@@ -28,6 +29,8 @@ func (c Command) String() string {
 		return "!feedback"
 	case CmdTktool:
 		return "!tktool"
+	case CmdVonprove:
+		return "!vonprove"
 	}
 }
 
@@ -43,6 +46,8 @@ func makeCommand(s string) Command {
 		return CmdFeedback
 	case "!tktool":
 		return CmdTktool
+	case "!vonprove":
+		return CmdVonprove
 	}
 }
 

@@ -284,6 +284,18 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG) {
 		if err := store.Log(e); err != nil {
 			log.Printf("error logging %v: %v", eribo.CmdTktool, err)
 		}
+	case strings.HasPrefix(m.Message, eribo.CmdVonprove.String()):
+		resp := &flist.MSG{
+			Channel: m.Channel,
+			Message: rp.RandVonprove(m.Character),
+		}
+		if err := c.SendMSG(resp); err != nil {
+			log.Printf("error sending %v response: %v", eribo.CmdVonprove, err)
+		}
+		e := &eribo.Event{Command: eribo.CmdVonprove, Player: m.Character, Channel: m.Channel}
+		if err := store.Log(e); err != nil {
+			log.Printf("error logging %v: %v", eribo.CmdVonprove, err)
+		}
 	}
 }
 

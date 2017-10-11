@@ -45,3 +45,16 @@ func TestTktools(t *testing.T) {
 		}
 	}
 }
+
+func TestVonproves(t *testing.T) {
+	for _, tt := range vonproves {
+		checkEmote(t, tt.Raw)
+		checkBBcode(t, tt.Raw)
+		if tt.HasDate || tt.HasDuration {
+			checkVerbCount(t, tt.Raw, "%v", 1)
+		}
+		if tt.HasUser {
+			checkVerbCount(t, tt.Raw, "%s", 1)
+		}
+	}
+}
