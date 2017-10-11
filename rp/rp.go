@@ -267,6 +267,21 @@ var tktools = []Tktool{
 		traditional, O, I and II power levels, this switch supports two extra
 		levels indicated as III and XXX.`,
 	},
+	{
+		Raw: `/me hands %s a set of wearable, metallic, [u]cat claws[/u]. The
+		pointy tips of the claws seem to be sharp enough for play but not
+		harm.`,
+	},
+	{
+		Raw: `/me hands %s a bottle of [u]baby oil[/u]. The label of the bottle
+		reads: 'A wonderful fragrance, for silky soft skin and soothing
+		massages.'`,
+	},
+	{
+		Colors: []Color{Black, Blue, Violet, Pink, Orange, Purple, Brown},
+		Raw: `/me hands %s a large, %s [u]porcupine grooming brush[/u] with
+		dense, black nylon bristles that form a slight curve.`,
+	},
 }
 
 func RandTktool(name string) string {
