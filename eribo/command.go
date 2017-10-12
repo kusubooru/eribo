@@ -30,7 +30,7 @@ func (c Command) String() string {
 	case CmdTktool:
 		return "!tktool"
 	case CmdVonprove:
-		return "!vonprove"
+		return "!Vonprove"
 	}
 }
 
@@ -46,7 +46,7 @@ func makeCommand(s string) Command {
 		return CmdFeedback
 	case "!tktool":
 		return CmdTktool
-	case "!vonprove":
+	case "!Vonprove":
 		return CmdVonprove
 	}
 }
