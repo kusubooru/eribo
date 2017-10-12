@@ -286,7 +286,10 @@ var tktools = []Tktool{
 
 func RandTktool(name string) string {
 	t := tktools[newRand(len(tktools))]
-	return t.Apply(name, t.Colors[newRand(len(t.Colors))])
+	if t.Colors != nil {
+		return t.Apply(name, t.Colors[newRand(len(t.Colors))])
+	}
+	return t.Apply(name, 0)
 }
 
 type Vonprove struct {
