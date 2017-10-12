@@ -253,48 +253,48 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG) {
 			Channel: m.Channel,
 			Message: rp.RandTieUp(m.Character),
 		}
-		if err := c.SendMSG(resp); err != nil {
-			log.Printf("error sending %v response: %v", eribo.CmdTieup, err)
-		}
 		e := &eribo.Event{Command: eribo.CmdTieup, Player: m.Character, Channel: m.Channel}
 		if err := store.Log(e); err != nil {
 			log.Printf("error logging %v: %v", eribo.CmdTieup, err)
+		}
+		if err := c.SendMSG(resp); err != nil {
+			log.Printf("error sending %v response: %v", eribo.CmdTieup, err)
 		}
 	case strings.HasPrefix(m.Message, eribo.CmdTomato.String()):
 		resp := &flist.MSG{
 			Channel: m.Channel,
 			Message: rp.Tomato(m.Character),
 		}
-		if err := c.SendMSG(resp); err != nil {
-			log.Printf("error sending %v response: %v", eribo.CmdTomato, err)
-		}
 		e := &eribo.Event{Command: eribo.CmdTomato, Player: m.Character, Channel: m.Channel}
 		if err := store.Log(e); err != nil {
 			log.Printf("error logging %v: %v", eribo.CmdTomato, err)
+		}
+		if err := c.SendMSG(resp); err != nil {
+			log.Printf("error sending %v response: %v", eribo.CmdTomato, err)
 		}
 	case strings.HasPrefix(m.Message, eribo.CmdTktool.String()):
 		resp := &flist.MSG{
 			Channel: m.Channel,
 			Message: rp.RandTktool(m.Character),
 		}
-		if err := c.SendMSG(resp); err != nil {
-			log.Printf("error sending %v response: %v", eribo.CmdTktool, err)
-		}
 		e := &eribo.Event{Command: eribo.CmdTktool, Player: m.Character, Channel: m.Channel}
 		if err := store.Log(e); err != nil {
 			log.Printf("error logging %v: %v", eribo.CmdTktool, err)
+		}
+		if err := c.SendMSG(resp); err != nil {
+			log.Printf("error sending %v response: %v", eribo.CmdTktool, err)
 		}
 	case strings.HasPrefix(m.Message, eribo.CmdVonprove.String()):
 		resp := &flist.MSG{
 			Channel: m.Channel,
 			Message: rp.RandVonprove(m.Character),
 		}
-		if err := c.SendMSG(resp); err != nil {
-			log.Printf("error sending %v response: %v", eribo.CmdVonprove, err)
-		}
 		e := &eribo.Event{Command: eribo.CmdVonprove, Player: m.Character, Channel: m.Channel}
 		if err := store.Log(e); err != nil {
 			log.Printf("error logging %v: %v", eribo.CmdVonprove, err)
+		}
+		if err := c.SendMSG(resp); err != nil {
+			log.Printf("error sending %v response: %v", eribo.CmdVonprove, err)
 		}
 	}
 }
@@ -307,6 +307,10 @@ func gatherFeedback(c *flist.Client, store eribo.Store, pri *flist.PRI) error {
 	message = strings.TrimSpace(message)
 	if message == "" {
 		return nil
+	}
+	e := &eribo.Event{Command: eribo.CmdFeedback, Player: pri.Character}
+	if err := store.Log(e); err != nil {
+		log.Printf("error logging %v: %v", eribo.CmdFeedback, err)
 	}
 	f := &eribo.Feedback{
 		Player:  pri.Character,
@@ -321,10 +325,6 @@ func gatherFeedback(c *flist.Client, store eribo.Store, pri *flist.PRI) error {
 	}
 	if err := c.SendPRI(resp); err != nil {
 		return fmt.Errorf("error sending %v response: %v", eribo.CmdFeedback, err)
-	}
-	e := &eribo.Event{Command: eribo.CmdFeedback, Player: pri.Character}
-	if err := store.Log(e); err != nil {
-		log.Printf("error logging %v: %v", eribo.CmdFeedback, err)
 	}
 	return nil
 }
