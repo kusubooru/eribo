@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sort"
@@ -370,4 +371,51 @@ func GetCharacterData(name, account, ticket string) (*CharacterData, error) {
 		return nil, fmt.Errorf("could not decode character data: %v", err)
 	}
 	return d, nil
+}
+
+func GetAccountCharacters(account, ticket string) ([]string, error) {
+	u := "https://www.f-list.net/json/api/character-list.php"
+
+	v := url.Values{}
+	v.Add("account", account)
+	v.Add("ticket", ticket)
+
+	body := strings.NewReader(v.Encode())
+	resp, err := http.Post(u, "application/x-www-form-urlencoded", body)
+	if err != nil {
+		return nil, fmt.Errorf("post character data failed: %v", err)
+	}
+
+	if err := checkResponse(resp); err != nil {
+		return nil, err
+	}
+
+	type AccountCharacters struct {
+		Characters []string
+		Error      string
+	}
+	ac := new(AccountCharacters)
+	if err := json.NewDecoder(resp.Body).Decode(ac); err != nil {
+		return nil, fmt.Errorf("could not decode account characters: %v", err)
+	}
+	chars := ac.Characters
+	if ac.Error != "" {
+		return chars, fmt.Errorf(ac.Error)
+	}
+	return chars, nil
+}
+
+func checkResponse(r *http.Response) error {
+	if c := r.StatusCode; 200 <= c && c <= 299 {
+		return nil
+	}
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return fmt.Errorf("%v %v: %d %s",
+			r.Request.Method, r.Request.URL,
+			r.StatusCode, fmt.Sprintf("error reading response body: %v", err))
+	}
+	return fmt.Errorf("%v %v: %d %s",
+		r.Request.Method, r.Request.URL,
+		r.StatusCode, string(data))
 }
