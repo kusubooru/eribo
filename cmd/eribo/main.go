@@ -107,11 +107,35 @@ func main() {
 	msgch := make(chan *flist.MSG, 10)
 	prich := make(chan *flist.PRI, 10)
 	orsch := make(chan *flist.ORS, 10)
+	lisch := make(chan *flist.LIS, 10)
+	flnch := make(chan *flist.FLN, 10)
+	nlnch := make(chan *flist.NLN, 10)
+	ichch := make(chan *flist.ICH)
 	pinch := make(chan *flist.PIN)
+	prdch := make(chan *flist.PRD, 100)
+	stach := make(chan *flist.STA)
+	jchch := make(chan *flist.JCH)
+	lchch := make(chan *flist.LCH)
 	quit := make(chan struct{})
 
 	// The reader is responsible for closing the channels.
-	go readMessages(c, idnch, msgch, prich, orsch, pinch, quit)
+	go readMessages(
+		c,
+		idnch,
+		msgch,
+		prich,
+		orsch,
+		lisch,
+		flnch,
+		nlnch,
+		ichch,
+		pinch,
+		prdch,
+		stach,
+		jchch,
+		lchch,
+		quit,
+	)
 
 	// Login to F-list.
 	if err := c.Identify(*account, *password, *character); err != nil {
@@ -130,7 +154,39 @@ func main() {
 		return
 	}
 
-	handleMessages(c, store, roomTitles, idnch, msgch, prich, orsch, pinch, quit)
+	mappingList, err := flist.GetMappingList()
+	if err != nil {
+		log.Printf("could not get mapping list: %v", err)
+		return
+	}
+
+	playerMap := eribo.NewPlayerMap()
+	channelMap := eribo.NewChannelMap()
+
+	handleMessages(
+		c,
+		*account,
+		*password,
+		mappingList,
+		store,
+		playerMap,
+		channelMap,
+		roomTitles,
+		idnch,
+		msgch,
+		prich,
+		orsch,
+		lisch,
+		flnch,
+		nlnch,
+		ichch,
+		pinch,
+		prdch,
+		stach,
+		jchch,
+		lchch,
+		quit,
+	)
 }
 
 // readMessages or "the reader" reads messages in a loop, sepearates them into
@@ -142,14 +198,30 @@ func readMessages(
 	msgch chan<- *flist.MSG,
 	prich chan<- *flist.PRI,
 	orsch chan<- *flist.ORS,
+	lisch chan<- *flist.LIS,
+	flnch chan<- *flist.FLN,
+	nlnch chan<- *flist.NLN,
+	ichch chan<- *flist.ICH,
 	pinch chan<- *flist.PIN,
+	prdch chan<- *flist.PRD,
+	stach chan<- *flist.STA,
+	jchch chan<- *flist.JCH,
+	lchch chan<- *flist.LCH,
 	quit chan struct{},
 ) {
 	defer close(idnch)
 	defer close(msgch)
 	defer close(prich)
 	defer close(orsch)
+	defer close(lisch)
+	defer close(flnch)
+	defer close(nlnch)
+	defer close(ichch)
 	defer close(pinch)
+	defer close(prdch)
+	defer close(stach)
+	defer close(jchch)
+	defer close(lchch)
 	defer close(quit)
 	for {
 		message, err := c.ReadMessage()
@@ -159,7 +231,7 @@ func readMessages(
 		}
 		cmd, err := flist.DecodeCommand(message)
 		if err == flist.ErrUnknownCmd && len(message) != 0 {
-			//fmt.Println("got:", string(message))
+			fmt.Println("got:", string(message))
 		}
 		if err != nil && err != flist.ErrUnknownCmd {
 			log.Println("cmd decode error:", err)
@@ -173,24 +245,55 @@ func readMessages(
 			prich <- t
 		case *flist.ORS:
 			orsch <- t
+		case *flist.LIS:
+			lisch <- t
+		case *flist.FLN:
+			flnch <- t
+		case *flist.NLN:
+			nlnch <- t
+		case *flist.ICH:
+			ichch <- t
 		case *flist.PIN:
 			pinch <- t
+		case *flist.PRD:
+			prdch <- t
+		case *flist.STA:
+			stach <- t
+		case *flist.JCH:
+			jchch <- t
+		case *flist.LCH:
+			lchch <- t
+		case *flist.ERR:
+			log.Println(fmt.Errorf("Error %d: %s", t.Number, t.Message))
 		}
 	}
 }
 
 // handleMessages receives different command types from the reader's channels
-// and responds accordingly. It also listens for the interrupt singal or for
+// and responds accordingly. It also listens for the interrupt signal or for
 // the reader quitting due to error.
 func handleMessages(
 	c *flist.Client,
+	account string,
+	password string,
+	mappingList *flist.MappingList,
 	store eribo.Store,
+	playerMap *eribo.PlayerMap,
+	channelMap *eribo.ChannelMap,
 	roomTitles []string,
 	idnch <-chan *flist.IDN,
 	msgch <-chan *flist.MSG,
 	prich <-chan *flist.PRI,
 	orsch <-chan *flist.ORS,
+	lisch <-chan *flist.LIS,
+	flnch <-chan *flist.FLN,
+	nlnch <-chan *flist.NLN,
+	ichch <-chan *flist.ICH,
 	pinch <-chan *flist.PIN,
+	prdch <-chan *flist.PRD,
+	stach <-chan *flist.STA,
+	jchch <-chan *flist.JCH,
+	lchch <-chan *flist.LCH,
 	quit <-chan struct{},
 ) {
 	interrupt := make(chan os.Signal, 1)
@@ -235,6 +338,99 @@ func handleMessages(
 					}
 				}
 			}
+		case lis := <-lisch:
+			for _, c := range lis.Characters {
+				pl := &eribo.Player{Name: c[0], Status: flist.Status(c[2])}
+				playerMap.SetPlayer(pl)
+			}
+		case fln := <-flnch:
+			playerMap.DelPlayer(fln.Character)
+			channelMap.DelPlayerAllChannels(fln.Character)
+		case nln := <-nlnch:
+			pl := &eribo.Player{Name: nln.Identity, Status: nln.Status}
+			playerMap.SetPlayer(pl)
+		case ich := <-ichch:
+			ticket, err := flist.GetTicket(account, password)
+			if err != nil {
+				log.Printf("init channel get ticket error: %v", err)
+				return
+			}
+			for _, u := range ich.Users {
+				if p, ok := playerMap.GetPlayer(u.Identity); ok {
+					channelMap.SetPlayer(ich.Channel, p)
+				}
+				actives := channelMap.GetActivePlayers()
+				actives.ForEach(func(name string, p *eribo.Player) {
+					charData, err := flist.GetCharacterData(name, account, ticket)
+					if err != nil {
+						log.Printf("init channel could not get character data for %q: %v", name, err)
+						return
+					}
+					m := charData.HumanInfotags(mappingList)
+					if role, ok := m["Dom/Sub Role"]; ok {
+						p.Role = flist.Role(role)
+					}
+				})
+				//pro := &flist.PRO{Character: u.Identity}
+				//if err := c.SendPRO(pro); err != nil {
+				//	log.Println("error sending PRO command for identity %q: %v", u.Identity, err)
+				//}
+				//fmt.Println("sent pro for:", u.Identity)
+				//time.Sleep(11 * time.Second)
+			}
+		case sta := <-stach:
+			name := sta.Character
+			newStatus := flist.Status(sta.Status)
+			player, _ := channelMap.GetPlayer(name)
+			if player != nil && player.Role == "" && !player.Status.IsActive() && newStatus.IsActive() {
+				fmt.Printf("STA changed to active for char %q\n", name)
+				ticket, err := flist.GetTicket(account, password)
+				if err != nil {
+					log.Printf("STA change get ticket error: %v", err)
+					return
+				}
+
+				charData, err := flist.GetCharacterData(name, account, ticket)
+				if err != nil {
+					log.Printf("STA change could not get character data for %q: %v", name, err)
+					return
+				}
+				m := charData.HumanInfotags(mappingList)
+				if role, ok := m["Dom/Sub Role"]; ok {
+					player.Role = flist.Role(role)
+				}
+			}
+			playerMap.SetPlayerStatus(name, newStatus)
+		case jch := <-jchch:
+			name := jch.Character.Identity
+			player, _ := playerMap.GetPlayer(name)
+			if player == nil {
+				log.Printf("JCH player %q not found in playerMap", name)
+				return
+			}
+			if player.Role == "" && player.Status.IsActive() {
+				fmt.Println("player %q joined, getting char data", name)
+				ticket, err := flist.GetTicket(account, password)
+				if err != nil {
+					log.Printf("JCH get ticket error: %v", err)
+					return
+				}
+
+				charData, err := flist.GetCharacterData(name, account, ticket)
+				if err != nil {
+					log.Printf("JCH could not get character data for %q: %v", name, err)
+					return
+				}
+				m := charData.HumanInfotags(mappingList)
+				if role, ok := m["Dom/Sub Role"]; ok {
+					player.Role = flist.Role(role)
+				}
+			}
+			channelMap.SetPlayer(jch.Channel, player)
+		case lch := <-lchch:
+			channelMap.DelPlayer(lch.Channel, lch.Character)
+		case prd := <-prdch:
+			fmt.Println("got prd:", prd)
 		case <-pinch:
 			if err := c.SendPIN(); err != nil {
 				log.Println("send PIN failed:", err)

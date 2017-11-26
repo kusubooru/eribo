@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -108,12 +107,120 @@ type ORS struct {
 func (c *ORS) CmdEncode() ([]byte, error)  { return cmdEncode("ORS", c) }
 func (c *ORS) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
-type JCH struct {
-	Channel string `json:"channel"`
+// LIS is a server command.
+//
+// Sends an array of all the online characters and their gender, status, and
+// status message.
+//
+// Syntax
+//
+//     >> LIS { characters: [object] }
+//
+// Raw sample
+//
+//     LIS {"characters": [["Alexandrea", "Female", "online", ""], ["Fa Mulan",
+//     "Female", "busy", "Away, check out my new alt Aya Kinjou!"], ["Adorkable
+//     Lexi", "Female", "online", ""], ["Melfice Cyrum", "Male", "online", ""],
+//     ["Jenasys Stryphe", "Female", "online", ""], ["Cassie Hazel", "Herm",
+//     "looking", ""], ["Jun Watarase", "Male", "looking", "cute femmy boi
+//     looking for a dominate partner"],["Motley Ferret", "Male", "online",
+//     ""], ["Tashi", "Male", "online", ""], ["Viol", "Cunt-boy", "looking",
+//     ""], ["Dorjan Kazyanenko", "Male", "looking", ""], ["Asaki", "Female",
+//     "online", ""]]}
+//
+// Because of the large amount of data, this command is often sent out in
+// batches of several LIS commands. Since you got a CON before LIS, you'll know
+// when it has sent them all.
+//
+// The characters object has a syntax of ["Name", "Gender", "Status", "Status
+// Message"].
+type LIS struct {
+	Characters [][]string `json:"characters"`
 }
 
-func (c *JCH) CmdEncode() ([]byte, error)  { return cmdEncode("JCH", c) }
-func (c *JCH) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+func (c *LIS) CmdEncode() ([]byte, error)  { return cmdEncode("LIS", c) }
+func (c *LIS) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+
+// FLN is a server command.
+//
+// Sent by the server to inform the client a given character went offline.
+//
+// Syntax
+//
+//     >> FLN { "character": string }
+//
+// Raw sample
+//
+//     FLN {"character":"Hexxy"}
+//
+// Notes/Warnings
+//
+// Should be treated as a global LCH for this character.
+type FLN struct {
+	Character string `json:"character"`
+}
+
+func (c *FLN) CmdEncode() ([]byte, error)  { return cmdEncode("FLN", c) }
+func (c *FLN) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+
+// NLN is a server command.
+//
+// A user connected.
+//
+// Syntax
+//
+//     >> NLN { "identity": string, "gender": enum, "status": enum }
+//
+// Raw sample
+//
+//     NLN {"status": "online", "gender": "Male", "identity": "Hexxy"}
+//
+// Parameters
+//
+// Identity: character name of the user connecting.
+//
+// Gender: a valid gender string.
+//
+// Status: a valid status, though since it is when signing on, the only
+// possibility is online.
+type NLN struct {
+	Identity string `json:"identity"`
+	Gender   string `json:"gender"`
+	Status   Status `json:"status"`
+}
+
+func (c *NLN) CmdEncode() ([]byte, error)  { return cmdEncode("NLN", c) }
+func (c *NLN) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+
+// ERR is a server command.
+//
+// Indicates that the given error has occurred.
+//
+// Syntax
+//
+//     >> ERR { "number": int, "message": string }
+//
+// Raw sample
+//
+//     ERR {"message": "You have already joined this channel.", "number": 28}
+type ERR struct {
+	Number  int    `json:"number"`
+	Message string `json:"message"`
+}
+
+func (c *ERR) CmdEncode() ([]byte, error)  { return cmdEncode("ERR", c) }
+func (c *ERR) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+
+type ICH struct {
+	Channel string `json:"channel"`
+	Mode    string `json:"mode"` // enum, can be "ads", "chat", or "both".
+	Users   []struct {
+		Identity string `json:"identity"`
+	} `json:"users"`
+}
+
+func (c *ICH) CmdEncode() ([]byte, error)  { return cmdEncode("ICH", c) }
+func (c *ICH) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 type MSG struct {
 	Character string `json:"character,omitempty"`
@@ -133,7 +240,62 @@ type PRI struct {
 func (m *PRI) CmdEncode() ([]byte, error)  { return cmdEncode("PRI", m) }
 func (m *PRI) CmdDecode(data []byte) error { return json.Unmarshal(data[3:], m) }
 
+type PRO struct {
+	Character string `json:"character"`
+}
+
+func (c *PRO) CmdEncode() ([]byte, error)  { return cmdEncode("PRO", c) }
+func (c *PRO) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+
+type PRDType string
+
+const (
+	PRDStart  PRDType = "start"
+	PRDEnd            = "end"
+	PRDInfo           = "info"
+	PRDSelect         = "select"
+)
+
+type PRD struct {
+	Type    PRDType `json:"type"`
+	Message string  `json:"message,omitempty"`
+	Key     string  `json:"key"`
+	Value   string  `json:"value"`
+}
+
+func (c *PRD) CmdEncode() ([]byte, error)  { return cmdEncode("PRD", c) }
+func (c *PRD) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+
+type Role string
+
+const (
+	RoleFullDom = "Always dominant"
+	RoleSomeDom = "Usually dominant"
+	RoleSwitch  = "Switch"
+	RoleSomeSub = "Usually submissive"
+	RoleFullSub = "Always submissive"
+)
+
 type Status string
+
+func (s Status) IsActive() bool {
+	switch s {
+	case StatusOnline:
+		return true
+	case StatusLooking:
+		return true
+	case StatusBusy:
+		return false
+	case StatusDND:
+		return false
+	case StatusIdle:
+		return false
+	case StatusAway:
+		return false
+	default:
+		return false
+	}
+}
 
 const (
 	StatusOnline  = "online"
@@ -152,6 +314,72 @@ type STA struct {
 
 func (c *STA) CmdEncode() ([]byte, error)  { return cmdEncode("STA", c) }
 func (c *STA) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+
+// JCH is a server and client command.
+//
+// Server
+//
+// Indicates the given user has joined the given channel. This may also be the
+// client's character.
+//
+// Syntax
+//
+//     >> JCH { "channel": string, "character": object, "title": string }
+//
+// Raw sample
+//
+//     JCH {"character": {"identity": "Hexxy"}, "channel": "Frontpage",
+//     "title": "Frontpage"}
+//
+// Notes/Warnings
+//
+// As with all commands that refer to a specific channel, official/public
+// channels use the name, but unofficial/private/open private rooms use the
+// channel ID, which can be gotten from ORS.
+//
+// Client
+//
+// Send a channel join request.
+//
+// Syntax
+//
+//     << JCH { "channel": string }
+//
+// Raw sample
+//
+//     JCH {"channel": "Frontpage"}
+//
+// Notes/Warnings
+//
+// As with all commands that refer to a specific channel, official/public
+// channels use the name, but unofficial/private/open private rooms use the
+// channel ID, which can be gotten from ORS.
+type JCH struct {
+	Channel   string `json:"channel"`
+	Title     string `json:"title,omitempty"`
+	Character struct {
+		Identity string `json:"identity"`
+	} `json:"character,omitempty"`
+}
+
+func (c *JCH) CmdEncode() ([]byte, error)  { return cmdEncode("JCH", c) }
+func (c *JCH) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+
+// LCH is a server command.
+//
+// An indicator that the given character has left the channel. This may also be
+// the client's character.
+//
+// Syntax
+//
+//     >> LCH { "channel": string, "character": character }
+type LCH struct {
+	Channel   string `json:"channel"`
+	Character string `json:"character"`
+}
+
+func (c LCH) CmdEncode() ([]byte, error)   { return cmdEncode("LCH", c) }
+func (c *LCH) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 type Client struct {
 	ws      *websocket.Conn
@@ -221,12 +449,62 @@ func DecodeCommand(data []byte) (Command, error) {
 			return nil, fmt.Errorf("ORS decode: %v", err)
 		}
 		return ors, nil
+	case isCmd(data, "LIS"):
+		lis := new(LIS)
+		if err := lis.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("LIS decode: %v", err)
+		}
+		return lis, nil
+	case isCmd(data, "NLN"):
+		nln := new(NLN)
+		if err := nln.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("NLN decode: %v", err)
+		}
+		return nln, nil
+	case isCmd(data, "FLN"):
+		fln := new(FLN)
+		if err := fln.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("FLN decode: %v", err)
+		}
+		return fln, nil
+	case isCmd(data, "ICH"):
+		ich := new(ICH)
+		fmt.Println("---> ich:", string(data))
+		if err := ich.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("ICH decode: %v", err)
+		}
+		return ich, nil
+	case isCmd(data, "PRD"):
+		prd := new(PRD)
+		fmt.Println("---> prd:", string(data))
+		if err := prd.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("PRD decode: %v", err)
+		}
+		return prd, nil
 	case isCmd(data, "STA"):
 		sta := new(STA)
 		if err := sta.CmdDecode(data); err != nil {
 			return nil, fmt.Errorf("STA decode: %v", err)
 		}
 		return sta, nil
+	case isCmd(data, "JCH"):
+		jch := new(JCH)
+		if err := jch.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("JCH decode: %v", err)
+		}
+		return jch, nil
+	case isCmd(data, "LCH"):
+		lch := new(LCH)
+		if err := lch.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("LCH decode: %v", err)
+		}
+		return lch, nil
+	case isCmd(data, "ERR"):
+		err := new(ERR)
+		if err := err.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("ERR decode: %v", err)
+		}
+		return err, nil
 	case isCmd(data, "PIN"):
 		pin := new(PIN)
 		return pin, nil
@@ -259,6 +537,18 @@ func (c *Client) SendPRI(pri *PRI) error {
 
 	if err := c.writeMessage(data); err != nil {
 		return fmt.Errorf("SendPRI error: %v", err)
+	}
+	return nil
+}
+
+func (c *Client) SendPRO(pro *PRO) error {
+	data, err := pro.CmdEncode()
+	if err != nil {
+		return fmt.Errorf("PRO encode failed: %v", err)
+	}
+
+	if err := c.writeMessage(data); err != nil {
+		return fmt.Errorf("SendPRO error: %v", err)
 	}
 	return nil
 }
@@ -341,15 +631,46 @@ func GetTicket(account, password string) (string, error) {
 }
 
 type CharacterData struct {
-	ID           int64             `json:"id"`
-	Name         string            `json:"name"`
-	Description  string            `json:"description"`
-	Views        int               `json:"views"`
-	CustomsFirst bool              `json:"customs_first"`
-	CustomTitle  string            `json:"custom_title"`
-	CreatedAt    time.Time         `json:"created_at"`
-	UpdatedAt    time.Time         `json:"updated_at"`
-	Infotags     map[string]string `json:"infotags"`
+	ID           int64    `json:"id"`
+	Name         string   `json:"name"`
+	Description  string   `json:"description"`
+	Views        int      `json:"views"`
+	CustomsFirst bool     `json:"customs_first"`
+	CustomTitle  string   `json:"custom_title"`
+	CreatedAt    int64    `json:"created_at"`
+	UpdatedAt    int64    `json:"updated_at"`
+	Infotags     Infotags `json:"infotags"`
+}
+
+func (d CharacterData) HumanInfotags(ml *MappingList) map[string]string {
+	infotags := ml.InfotagsMap()
+	listitems := ml.ListitemsMap()
+	m := make(map[string]string)
+	for k, v := range d.Infotags {
+		m[infotags[k]] = listitems[v]
+	}
+	return m
+}
+
+type Infotags map[string]string
+
+func (it *Infotags) UnmarshalJSON(data []byte) error {
+	if bytes.HasPrefix(data, []byte("{")) {
+		m := new(map[string]string)
+		if err := json.Unmarshal(data, m); err != nil {
+			return err
+		}
+		*it = make(map[string]string)
+		for k, v := range *m {
+			(*it)[k] = v
+		}
+		return nil
+	}
+	return nil
+}
+
+func (it Infotags) MarshalJSON() ([]byte, error) {
+	return json.Marshal(it)
 }
 
 func GetCharacterData(name, account, ticket string) (*CharacterData, error) {
@@ -365,10 +686,73 @@ func GetCharacterData(name, account, ticket string) (*CharacterData, error) {
 	if err != nil {
 		return nil, fmt.Errorf("post character data failed: %v", err)
 	}
+	//b, _ := ioutil.ReadAll(resp.Body)
+	//fmt.Println(string(b))
 
 	d := new(CharacterData)
 	if err := json.NewDecoder(resp.Body).Decode(d); err != nil {
 		return nil, fmt.Errorf("could not decode character data: %v", err)
+	}
+	return d, nil
+}
+
+type MappingList struct {
+	Kinks []struct {
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		GroupID     string `json:"group_id"`
+	} `json:"kinks"`
+	KinkGroups []struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"kink_groups"`
+	Infotags []struct {
+		ID      string `json:"id"`
+		Name    string `json:"name"`
+		Type    string `json:"type"`
+		List    string `json:"list"`
+		GroupID string `json:"group_id"`
+	} `json:"infotags"`
+	InfotagGroups []struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"infotag_groups"`
+	Listitems []struct {
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Value string `json:"value"`
+	} `json:"listitems"`
+	Error string `json:"error"`
+}
+
+func (ml MappingList) InfotagsMap() map[string]string {
+	m := make(map[string]string)
+	for _, it := range ml.Infotags {
+		m[it.ID] = it.Name
+	}
+	return m
+}
+
+func (ml MappingList) ListitemsMap() map[string]string {
+	m := make(map[string]string)
+	for _, li := range ml.Listitems {
+		m[li.ID] = li.Value
+	}
+	return m
+}
+
+func GetMappingList() (*MappingList, error) {
+	u := "https://www.f-list.net/json/api/mapping-list.php"
+
+	resp, err := http.Get(u)
+	if err != nil {
+		return nil, fmt.Errorf("get mapping list failed: %v", err)
+	}
+
+	d := new(MappingList)
+	if err := json.NewDecoder(resp.Body).Decode(d); err != nil {
+		return nil, fmt.Errorf("could not decode mapping list: %v", err)
 	}
 	return d, nil
 }
