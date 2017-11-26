@@ -296,6 +296,18 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG) {
 		if err := c.SendMSG(resp); err != nil {
 			log.Printf("error sending %v response: %v", eribo.CmdVonprove, err)
 		}
+	case strings.HasPrefix(m.Message, eribo.CmdJojo.String()):
+		resp := &flist.MSG{
+			Channel: m.Channel,
+			Message: rp.RandJojo(m.Character),
+		}
+		e := &eribo.Event{Command: eribo.CmdJojo, Player: m.Character, Channel: m.Channel}
+		if err := store.Log(e); err != nil {
+			log.Printf("error logging %v: %v", eribo.CmdJojo, err)
+		}
+		if err := c.SendMSG(resp); err != nil {
+			log.Printf("error sending %v response: %v", eribo.CmdJojo, err)
+		}
 	}
 }
 

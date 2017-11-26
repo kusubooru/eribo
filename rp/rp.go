@@ -357,3 +357,51 @@ func RandVonprove(user string) string {
 	v := vonproves[newRand(len(vonproves))]
 	return v.Apply(user)
 }
+
+type jojo struct {
+	Raw     string
+	HasUser bool
+}
+
+func (j jojo) Apply(user string) string {
+	if j.HasUser {
+		return fmt.Sprintf(clean(j.Raw), user)
+	}
+	return fmt.Sprintf(clean(j.Raw))
+}
+
+var jojos = []jojo{
+	{
+		Raw: `/me plays: [url=https://www.youtube.com/watch?v=yF00xX-p28Y]Jojo
+		Opening 1 - Sono Chi no Sadame[/url]`,
+	},
+	{
+		Raw: `/me plays: [url=https://www.youtube.com/watch?v=i-GWFGwbEPg]Jojo
+		Opening 2 - BLOODY STREAM[/url]`,
+	},
+	{
+		Raw: `/me plays: [url=https://www.youtube.com/watch?v=RordBk3Ztk4]Jojo
+		Opening 3 - STAND PROUD[/url]`,
+	},
+	{
+		Raw: `/me plays: [url=https://www.youtube.com/watch?v=f0yK_7adSCA]Jojo
+		Opening 4 - Sono Chi no Kioku[/url]`,
+	},
+	{
+		Raw: `/me plays: [url=https://www.youtube.com/watch?v=nNQ-Qi7pBpw]Jojo
+		Opening 5 - Crazy Noisy Bizarre Town[/url]`,
+	},
+	{
+		Raw: `/me plays: [url=https://www.youtube.com/watch?v=qr73XbBFDA8]Jojo
+		Opening 6 - chase[/url]`,
+	},
+	{
+		Raw: `/me plays: [url=https://www.youtube.com/watch?v=zoqH1Rk4ANM]Jojo
+		Opening 7 - Great Days[/url]`,
+	},
+}
+
+func RandJojo(user string) string {
+	j := jojos[newRand(len(jojos))]
+	return j.Apply(user)
+}
