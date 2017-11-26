@@ -361,15 +361,17 @@ func handleMessages(
 				}
 				actives := channelMap.GetActivePlayers()
 				actives.ForEach(func(name string, p *eribo.Player) {
-					charData, err := flist.GetCharacterData(name, account, ticket)
-					if err != nil {
-						log.Printf("init channel could not get character data for %q: %v", name, err)
-						return
-					}
-					m := charData.HumanInfotags(mappingList)
-					if role, ok := m["Dom/Sub Role"]; ok {
-						p.Role = flist.Role(role)
-					}
+					go func(name string, p *eribo.Player, playerMap *eribo.PlayerMap, mappingList *flist.MappingList) {
+						charData, err := flist.GetCharacterData(name, account, ticket)
+						if err != nil {
+							log.Printf("init channel could not get character data for %q: %v", name, err)
+							return
+						}
+						m := charData.HumanInfotags(mappingList)
+						if role, ok := m["Dom/Sub Role"]; ok {
+							playerMap.SetPlayerRole(p.Name, flist.Role(role))
+						}
+					}(name, p, playerMap, mappingList)
 				})
 				//pro := &flist.PRO{Character: u.Identity}
 				//if err := c.SendPRO(pro); err != nil {
@@ -384,20 +386,8 @@ func handleMessages(
 			player, _ := channelMap.GetPlayer(name)
 			if player != nil && player.Role == "" && !player.Status.IsActive() && newStatus.IsActive() {
 				fmt.Printf("STA changed to active for char %q\n", name)
-				ticket, err := flist.GetTicket(account, password)
-				if err != nil {
-					log.Printf("STA change get ticket error: %v", err)
-					return
-				}
-
-				charData, err := flist.GetCharacterData(name, account, ticket)
-				if err != nil {
-					log.Printf("STA change could not get character data for %q: %v", name, err)
-					return
-				}
-				m := charData.HumanInfotags(mappingList)
-				if role, ok := m["Dom/Sub Role"]; ok {
-					player.Role = flist.Role(role)
+				if err := getCharDataAndSetRole(name, account, password, playerMap, mappingList); err != nil {
+					log.Println("STA: %v", err)
 				}
 			}
 			playerMap.SetPlayerStatus(name, newStatus)
@@ -405,25 +395,13 @@ func handleMessages(
 			name := jch.Character.Identity
 			player, _ := playerMap.GetPlayer(name)
 			if player == nil {
-				log.Printf("JCH player %q not found in playerMap", name)
+				log.Printf("JCH: player %q not found in playerMap", name)
 				return
 			}
 			if player.Role == "" && player.Status.IsActive() {
-				fmt.Println("player %q joined, getting char data", name)
-				ticket, err := flist.GetTicket(account, password)
-				if err != nil {
-					log.Printf("JCH get ticket error: %v", err)
-					return
-				}
-
-				charData, err := flist.GetCharacterData(name, account, ticket)
-				if err != nil {
-					log.Printf("JCH could not get character data for %q: %v", name, err)
-					return
-				}
-				m := charData.HumanInfotags(mappingList)
-				if role, ok := m["Dom/Sub Role"]; ok {
-					player.Role = flist.Role(role)
+				fmt.Printf("player %q joined, getting char data\n", name)
+				if err := getCharDataAndSetRole(name, account, password, playerMap, mappingList); err != nil {
+					log.Println("JCH: %v", err)
 				}
 			}
 			channelMap.SetPlayer(jch.Channel, player)
@@ -440,6 +418,23 @@ func handleMessages(
 			log.Println("received IDN but shouldn't:", idn)
 		}
 	}
+}
+
+func getCharDataAndSetRole(name, account, password string, playerMap *eribo.PlayerMap, mappingList *flist.MappingList) error {
+	ticket, err := flist.GetTicket(account, password)
+	if err != nil {
+		return fmt.Errorf("get ticket error: %v", err)
+	}
+
+	charData, err := flist.GetCharacterData(name, account, ticket)
+	if err != nil {
+		return fmt.Errorf("get character data for %q error: %v", name, err)
+	}
+	m := charData.HumanInfotags(mappingList)
+	if role, ok := m["Dom/Sub Role"]; ok {
+		playerMap.SetPlayerRole(name, flist.Role(role))
+	}
+	return nil
 }
 
 func respond(c *flist.Client, store eribo.Store, m *flist.MSG) {

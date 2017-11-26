@@ -29,6 +29,14 @@ func (c *PlayerMap) SetPlayer(p *Player) {
 	c.m[p.Name] = p
 }
 
+func (c *PlayerMap) SetPlayerRole(playerName string, role flist.Role) {
+	c.Lock()
+	defer c.Unlock()
+	if p, ok := c.m[playerName]; ok {
+		p.Role = role
+	}
+}
+
 func (c *PlayerMap) SetPlayerStatus(playerName string, status flist.Status) {
 	c.Lock()
 	defer c.Unlock()
