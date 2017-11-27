@@ -58,6 +58,7 @@ func main() {
 		character   = flag.String("character", "", "websocket address to connect")
 		dataSource  = flag.String("datasource", "", "MySQL datasource")
 		joinRooms   = flag.String("join", "", "open private `rooms` to join in JSON format e.g. "+`-join '["Room 1", "Room 2"]'`)
+		statusMsg   = flag.String("status", "", "status message to be displayed")
 		showVersion = flag.Bool("v", false, "print program version")
 		versionArg  bool
 	)
@@ -147,6 +148,13 @@ func main() {
 	//
 	// https://wiki.f-list.net/F-Chat_Server_Commands#IDN
 	<-idnch
+
+	// Change bot status.
+	sta := &flist.STA{Status: flist.StatusBusy, StatusMsg: *statusMsg}
+	if err := c.SendSTA(sta); err != nil {
+		log.Println(err)
+		return
+	}
 
 	// Request open private rooms.
 	if err := c.SendORS(); err != nil {
