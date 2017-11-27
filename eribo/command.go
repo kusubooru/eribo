@@ -16,6 +16,7 @@ const (
 	CmdTktool
 	CmdVonprove
 	CmdJojo
+	CmdLoth
 )
 
 func (c Command) String() string {
@@ -34,6 +35,8 @@ func (c Command) String() string {
 		return "!Vonprove"
 	case CmdJojo:
 		return "!jojo"
+	case CmdLoth:
+		return "!loth"
 	}
 }
 
@@ -53,6 +56,8 @@ func makeCommand(s string) Command {
 		return CmdVonprove
 	case "!jojo":
 		return CmdJojo
+	case "!loth":
+		return CmdLoth
 	}
 }
 

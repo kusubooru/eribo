@@ -4,6 +4,28 @@ import (
 	"time"
 )
 
+type Loth struct {
+	*Player
+	expires time.Time
+}
+
+func NewLoth(p *Player, duration time.Duration) *Loth {
+	exp := time.Now().Add(duration)
+	return &Loth{Player: p, expires: exp}
+}
+
+func (l Loth) TimeLeft() string {
+	d := time.Until(time.Time(l.expires))
+	rounded := time.Duration(d.Nanoseconds()/time.Second.Nanoseconds()) * time.Second
+	return rounded.String()
+}
+
+func (l Loth) Expired() bool {
+	return time.Now().After(time.Time(l.expires))
+}
+
+// Store
+
 type Image struct {
 	ID        int64
 	URL       string

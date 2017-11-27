@@ -1,7 +1,9 @@
 package eribo
 
 import (
+	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/kusubooru/eribo/flist"
 )
@@ -10,7 +12,6 @@ type Player struct {
 	Name   string
 	Role   flist.Role
 	Status flist.Status
-	//Status string
 }
 
 type PlayerMap struct {
@@ -68,12 +69,14 @@ func (c *PlayerMap) ForEach(fn func(k string, v *Player)) {
 
 type ChannelMap struct {
 	sync.RWMutex
-	m map[string]*PlayerMap
+	m     map[string]*PlayerMap
+	lothm map[string]*Loth
 }
 
 func NewChannelMap() *ChannelMap {
 	m := make(map[string]*PlayerMap)
-	return &ChannelMap{m: m}
+	lothm := make(map[string]*Loth)
+	return &ChannelMap{m: m, lothm: lothm}
 }
 
 func (c *ChannelMap) DelPlayer(channel, playerName string) {
@@ -82,6 +85,11 @@ func (c *ChannelMap) DelPlayer(channel, playerName string) {
 	if pm, ok := c.m[channel]; ok {
 		pm.DelPlayer(playerName)
 	}
+	if loth, ok := c.lothm[channel]; ok {
+		if loth.Name == playerName {
+			delete(c.lothm, channel)
+		}
+	}
 }
 
 func (c *ChannelMap) DelPlayerAllChannels(playerName string) {
@@ -89,6 +97,11 @@ func (c *ChannelMap) DelPlayerAllChannels(playerName string) {
 	defer c.Unlock()
 	for channel := range c.m {
 		c.m[channel].DelPlayer(playerName)
+		if loth, ok := c.lothm[channel]; ok {
+			if loth.Name == playerName {
+				delete(c.lothm, channel)
+			}
+		}
 	}
 }
 
@@ -98,7 +111,6 @@ func (c *ChannelMap) SetPlayer(channel string, p *Player) {
 	if _, ok := c.m[channel]; !ok {
 		pm := NewPlayerMap()
 		pm.SetPlayer(p)
-		//c.m[channel] = map[string]*Player{p.Name: p}
 		c.m[channel] = pm
 		return
 	}
@@ -146,6 +158,44 @@ func (c ChannelMap) GetActivePlayers() *PlayerMap {
 		})
 	}
 	return actives
+}
+
+func (c *ChannelMap) ChooseLoth(channel, botName string, d time.Duration) (*Loth, bool) {
+	loth := c.lothm[channel]
+	if loth != nil && !loth.Expired() {
+		return loth, false
+	}
+	victims := make([]*Player, 0)
+	pm := c.GetActivePlayers()
+	pm.ForEach(func(name string, p *Player) {
+		c.RLock()
+		defer c.RUnlock()
+		if p.Role == flist.RoleFullDom || p.Role == flist.RoleSomeDom || p.Role == "" {
+			return
+		}
+		if p.Name == botName {
+			return
+		}
+		victims = append(victims, p)
+	})
+	if len(victims) == 0 {
+		return nil, false
+	}
+	victim := randVictim(victims)
+	c.Lock()
+	defer c.Unlock()
+	c.lothm[channel] = NewLoth(victim, d)
+	return c.lothm[channel], true
+}
+
+func newRand(n int) int {
+	seed := time.Now().UnixNano()
+	r := rand.New(rand.NewSource(seed))
+	return r.Intn(n)
+}
+
+func randVictim(victims []*Player) *Player {
+	return victims[newRand(len(victims))]
 }
 
 func (c ChannelMap) GetChannel(channel string) (*PlayerMap, bool) {

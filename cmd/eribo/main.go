@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"runtime"
 	"strings"
+	"time"
 
 	"mvdan.cc/xurls"
 
@@ -175,6 +176,7 @@ func main() {
 		c,
 		*account,
 		*password,
+		*character,
 		mappingList,
 		store,
 		playerMap,
@@ -239,7 +241,7 @@ func readMessages(
 		}
 		cmd, err := flist.DecodeCommand(message)
 		if err == flist.ErrUnknownCmd && len(message) != 0 {
-			fmt.Println("got:", string(message))
+			//fmt.Println("got:", string(message))
 		}
 		if err != nil && err != flist.ErrUnknownCmd {
 			log.Println("cmd decode error:", err)
@@ -284,6 +286,7 @@ func handleMessages(
 	c *flist.Client,
 	account string,
 	password string,
+	botName string,
 	mappingList *flist.MappingList,
 	store eribo.Store,
 	playerMap *eribo.PlayerMap,
@@ -330,7 +333,7 @@ func handleMessages(
 					log.Println("error storing message:", err)
 				}
 			}
-			respond(c, store, msg)
+			respond(c, store, msg, channelMap, botName)
 		case pri := <-prich:
 			if err := gatherFeedback(c, store, pri); err != nil {
 				log.Println("gather feedback err:", err)
@@ -381,19 +384,13 @@ func handleMessages(
 						}
 					}(name, p, playerMap, mappingList)
 				})
-				//pro := &flist.PRO{Character: u.Identity}
-				//if err := c.SendPRO(pro); err != nil {
-				//	log.Println("error sending PRO command for identity %q: %v", u.Identity, err)
-				//}
-				//fmt.Println("sent pro for:", u.Identity)
-				//time.Sleep(11 * time.Second)
 			}
 		case sta := <-stach:
 			name := sta.Character
 			newStatus := flist.Status(sta.Status)
 			player, _ := channelMap.GetPlayer(name)
 			if player != nil && player.Role == "" && !player.Status.IsActive() && newStatus.IsActive() {
-				fmt.Printf("STA changed to active for char %q\n", name)
+				//fmt.Printf("STA changed to active for char %q\n", name)
 				if err := getCharDataAndSetRole(name, account, password, playerMap, mappingList); err != nil {
 					log.Println("STA: %v", err)
 				}
@@ -407,7 +404,7 @@ func handleMessages(
 				return
 			}
 			if player.Role == "" && player.Status.IsActive() {
-				fmt.Printf("player %q joined, getting char data\n", name)
+				//fmt.Printf("player %q joined, getting char data\n", name)
 				if err := getCharDataAndSetRole(name, account, password, playerMap, mappingList); err != nil {
 					log.Println("JCH: %v", err)
 				}
@@ -445,7 +442,7 @@ func getCharDataAndSetRole(name, account, password string, playerMap *eribo.Play
 	return nil
 }
 
-func respond(c *flist.Client, store eribo.Store, m *flist.MSG) {
+func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo.ChannelMap, botName string) {
 	switch {
 	case strings.HasPrefix(m.Message, eribo.CmdTieup.String()):
 		resp := &flist.MSG{
@@ -506,6 +503,19 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG) {
 		}
 		if err := c.SendMSG(resp); err != nil {
 			log.Printf("error sending %v response: %v", eribo.CmdJojo, err)
+		}
+	case strings.HasPrefix(m.Message, eribo.CmdLoth.String()):
+		loth, isNew := channelMap.ChooseLoth(m.Channel, botName, 1*time.Hour)
+		resp := &flist.MSG{
+			Channel: m.Channel,
+			Message: rp.Loth(m.Character, loth, isNew),
+		}
+		e := &eribo.Event{Command: eribo.CmdLoth, Player: m.Character, Channel: m.Channel}
+		if err := store.Log(e); err != nil {
+			log.Printf("error logging %v: %v", eribo.CmdLoth, err)
+		}
+		if err := c.SendMSG(resp); err != nil {
+			log.Printf("error sending %v response: %v", eribo.CmdLoth, err)
 		}
 	}
 }

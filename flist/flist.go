@@ -469,14 +469,12 @@ func DecodeCommand(data []byte) (Command, error) {
 		return fln, nil
 	case isCmd(data, "ICH"):
 		ich := new(ICH)
-		fmt.Println("---> ich:", string(data))
 		if err := ich.CmdDecode(data); err != nil {
 			return nil, fmt.Errorf("ICH decode: %v", err)
 		}
 		return ich, nil
 	case isCmd(data, "PRD"):
 		prd := new(PRD)
-		fmt.Println("---> prd:", string(data))
 		if err := prd.CmdDecode(data); err != nil {
 			return nil, fmt.Errorf("PRD decode: %v", err)
 		}
