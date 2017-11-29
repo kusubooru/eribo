@@ -59,11 +59,11 @@ func (c *PlayerMap) GetPlayer(playerName string) (*Player, bool) {
 	return p, ok
 }
 
-func (c *PlayerMap) ForEach(fn func(k string, v *Player)) {
+func (c *PlayerMap) ForEach(fn func(name string, p *Player)) {
 	c.Lock()
 	defer c.Unlock()
-	for name, player := range c.m {
-		fn(name, player)
+	for k, v := range c.m {
+		fn(k, v)
 	}
 }
 
@@ -77,6 +77,14 @@ func NewChannelMap() *ChannelMap {
 	m := make(map[string]*PlayerMap)
 	lothm := make(map[string]*Loth)
 	return &ChannelMap{m: m, lothm: lothm}
+}
+
+func (c *ChannelMap) ForEach(fn func(channel string, pm *PlayerMap)) {
+	c.Lock()
+	defer c.Unlock()
+	for k, v := range c.m {
+		fn(k, v)
+	}
 }
 
 func (c *ChannelMap) DelPlayer(channel, playerName string) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,6 +59,7 @@ func main() {
 		account     = flag.String("account", "", "websocket address to connect")
 		password    = flag.String("password", "", "websocket address to connect")
 		character   = flag.String("character", "", "websocket address to connect")
+		owner       = flag.String("owner", "Ryuunosuke Akashaka", "character name of the bot's owner")
 		dataSource  = flag.String("datasource", "", "MySQL datasource")
 		joinRooms   = flag.String("join", "", "open private `rooms` to join in JSON format e.g. "+`-join '["Room 1", "Room 2"]'`)
 		statusMsg   = flag.String("status", "", "status message to be displayed")
@@ -150,13 +153,6 @@ func main() {
 	// https://wiki.f-list.net/F-Chat_Server_Commands#IDN
 	<-idnch
 
-	// Change bot status.
-	sta := &flist.STA{Status: flist.StatusBusy, StatusMsg: *statusMsg}
-	if err := c.SendSTA(sta); err != nil {
-		log.Println(err)
-		return
-	}
-
 	// Request open private rooms.
 	if err := c.SendORS(); err != nil {
 		log.Println(err)
@@ -172,11 +168,19 @@ func main() {
 	playerMap := eribo.NewPlayerMap()
 	channelMap := eribo.NewChannelMap()
 
+	// Change bot status.
+	sta := &flist.STA{Status: flist.StatusBusy, StatusMsg: *statusMsg}
+	if err := c.SendSTA(sta); err != nil {
+		log.Println(err)
+		return
+	}
+
 	handleMessages(
 		c,
 		*account,
 		*password,
 		*character,
+		*owner,
 		mappingList,
 		store,
 		playerMap,
@@ -237,6 +241,7 @@ func readMessages(
 		message, err := c.ReadMessage()
 		if err != nil {
 			log.Println("read message error:", err)
+			quit <- struct{}{}
 			return
 		}
 		cmd, err := flist.DecodeCommand(message)
@@ -273,6 +278,14 @@ func readMessages(
 			jchch <- t
 		case *flist.LCH:
 			lchch <- t
+		case *flist.VAR:
+			switch t.Variable {
+			case "chat_max":
+				c.SetChatMax(t.ChatMax)
+			case "priv_max":
+				c.SetPrivMax(t.PrivMax)
+			default:
+			}
 		case *flist.ERR:
 			log.Println(fmt.Errorf("Error %d: %s", t.Number, t.Message))
 		}
@@ -287,6 +300,7 @@ func handleMessages(
 	account string,
 	password string,
 	botName string,
+	owner string,
 	mappingList *flist.MappingList,
 	store eribo.Store,
 	playerMap *eribo.PlayerMap,
@@ -333,11 +347,12 @@ func handleMessages(
 					log.Println("error storing message:", err)
 				}
 			}
-			respond(c, store, msg, channelMap, botName)
+			respond(c, store, msg, channelMap, botName, owner)
 		case pri := <-prich:
 			if err := gatherFeedback(c, store, pri); err != nil {
 				log.Println("gather feedback err:", err)
 			}
+			respondPrivOwner(c, store, pri, channelMap, botName, owner)
 		case ors := <-orsch:
 			flist.SortChannelsByTitle(ors.Channels)
 			for _, title := range roomTitles {
@@ -442,7 +457,7 @@ func getCharDataAndSetRole(name, account, password string, playerMap *eribo.Play
 	return nil
 }
 
-func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo.ChannelMap, botName string) {
+func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo.ChannelMap, botName, owner string) {
 	switch {
 	case strings.HasPrefix(m.Message, eribo.CmdTieup.String()):
 		resp := &flist.MSG{
@@ -459,7 +474,7 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo
 	case strings.HasPrefix(m.Message, eribo.CmdTomato.String()):
 		resp := &flist.MSG{
 			Channel: m.Channel,
-			Message: rp.Tomato(m.Character),
+			Message: rp.Tomato(m.Character, owner),
 		}
 		e := &eribo.Event{Command: eribo.CmdTomato, Player: m.Character, Channel: m.Channel}
 		if err := store.Log(e); err != nil {
@@ -516,6 +531,85 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo
 		}
 		if err := c.SendMSG(resp); err != nil {
 			log.Printf("error sending %v response: %v", eribo.CmdLoth, err)
+		}
+	}
+}
+
+func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channelMap *eribo.ChannelMap, botName, owner string) {
+	if pri.Character != owner {
+		return
+	}
+
+	var cmd string
+	var msg string
+	switch {
+	case strings.HasPrefix(pri.Message, "!channelmap"):
+		cmd = "!channelmap"
+		var buf bytes.Buffer
+		buf.WriteString("\n")
+		channelMap.ForEach(func(channel string, pm *eribo.PlayerMap) {
+			buf.WriteString(fmt.Sprintf("Channel: %q\n", channel))
+			pm.ForEach(func(name string, p *eribo.Player) {
+				buf.WriteString(fmt.Sprintf("|- Name: %q, Status: %q, Role: %q\n", p.Name, p.Status, p.Role))
+			})
+		})
+		msg = buf.String()
+	case strings.HasPrefix(pri.Message, "!showfeed"):
+		cmd = "!showfeed"
+		feedback, err := store.GetRecentFeedback(10, 0)
+		if err != nil {
+			log.Printf("%v error getting feedback: %v", cmd, err)
+		}
+		var buf bytes.Buffer
+		buf.WriteString("\n")
+		for _, fb := range feedback {
+			buf.WriteString(fmt.Sprintf("%4d: %v by %s - %q\n", fb.ID, fb.Created.Format(time.Stamp), fb.Player, fb.Message))
+		}
+		msg = buf.String()
+	case strings.HasPrefix(pri.Message, "!showlogs"):
+		cmd = "!showlogs"
+		limit, offset := 10, 0
+		body := strings.TrimSpace(strings.TrimPrefix(pri.Message, cmd))
+		if body != "" {
+			args := strings.Split(body, " ")
+			if len(args) > 0 {
+				if lim, err := strconv.Atoi(args[0]); err == nil {
+					limit = lim
+				}
+			}
+			if len(args) > 1 {
+				if off, err := strconv.Atoi(args[1]); err == nil {
+					offset = off
+				}
+			}
+		}
+		logs, err := store.GetRecentLogs(limit, offset)
+		if err != nil {
+			log.Printf("%v error getting log: %v", cmd, err)
+		}
+		var buf bytes.Buffer
+		buf.WriteString("\n")
+		for _, lg := range logs {
+			buf.WriteString(fmt.Sprintf("%4d: %v by %s - %s - %q\n", lg.ID, lg.Created.Format(time.Stamp), lg.Player, lg.Command, lg.Channel))
+		}
+		msg = buf.String()
+	}
+
+	if msg != "" {
+		resp := &flist.PRI{
+			Recipient: pri.Character,
+			Message:   msg,
+		}
+		err := c.SendPRI(resp)
+		switch err {
+		case flist.ErrMsgTooLong:
+			resp.Message = fmt.Sprintf("%v", flist.ErrMsgTooLong)
+			if err2 := c.SendPRI(resp); err2 != nil {
+				log.Printf("error sending PRI response: %v", err2)
+			}
+		case nil:
+		default:
+			log.Printf("error sending %v response: %v", cmd, err)
 		}
 	}
 }

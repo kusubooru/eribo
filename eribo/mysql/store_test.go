@@ -61,15 +61,51 @@ func TestAddFeedback(t *testing.T) {
 		t.Fatal("AddFeedback failed:", err)
 	}
 
-	feedback, err := s.GetFeedback()
+	feedback, err := s.GetAllFeedback(10, 0)
 	if err != nil {
 		t.Fatal("GetFeedback failed:", err)
 	}
 	if got, want := len(feedback), 1; got != want {
-		t.Fatal("GetFeedback produced %d results, want %d", got, want)
+		t.Fatalf("GetFeedback produced %d results, want %d", got, want)
 	}
 	want := []*eribo.Feedback{
 		{ID: 1, Player: "foo", Message: "bar"},
+	}
+	// ignore created
+	for _, f := range feedback {
+		f.Created = time.Time{}
+	}
+	if have := feedback; !reflect.DeepEqual(have, want) {
+		data, _ := json.Marshal(have)
+		fmt.Println(string(data))
+		data, _ = json.Marshal(want)
+		fmt.Println(string(data))
+		t.Fatalf("AddFeedback = \nhave: %#v\nwant: %#v", have, want)
+	}
+}
+
+func TestGetRecentFeedback(t *testing.T) {
+	s := setup(t)
+	defer teardown(t, s)
+
+	f := &eribo.Feedback{
+		Player:  "foo",
+		Message: "bar",
+	}
+	for i := 0; i < 3; i++ {
+		if err := s.AddFeedback(f); err != nil {
+			t.Fatal("AddFeedback failed:", err)
+		}
+	}
+
+	feedback, err := s.GetRecentFeedback(2, 0)
+	if err != nil {
+		t.Fatal("GetFeedback failed:", err)
+	}
+
+	want := []*eribo.Feedback{
+		{ID: 3, Player: "foo", Message: "bar"},
+		{ID: 2, Player: "foo", Message: "bar"},
 	}
 	// ignore created
 	for _, f := range feedback {
@@ -104,6 +140,43 @@ func TestLog(t *testing.T) {
 
 	// ignore created
 	have.Created = time.Time{}
+
+	if !reflect.DeepEqual(have, want) {
+		data, _ := json.Marshal(have)
+		fmt.Println(string(data))
+		data, _ = json.Marshal(want)
+		fmt.Println(string(data))
+		t.Fatalf("Log = \nhave: %#v\nwant: %#v", have, want)
+	}
+}
+
+func TestGetRecentLogs(t *testing.T) {
+	s := setup(t)
+	defer teardown(t, s)
+
+	e := &eribo.Event{
+		Command: eribo.CmdTomato,
+		Player:  "foo",
+	}
+	for i := 0; i < 3; i++ {
+		if err := s.Log(e); err != nil {
+			t.Fatal("Log failed:", err)
+		}
+	}
+
+	have, err := s.GetRecentLogs(2, 0)
+	if err != nil {
+		t.Fatal("GetAllLogs failed:", err)
+	}
+	want := []*eribo.Event{
+		{ID: 3, Player: "foo", Command: eribo.CmdTomato},
+		{ID: 2, Player: "foo", Command: eribo.CmdTomato},
+	}
+
+	// ignore created
+	for _, h := range have {
+		h.Created = time.Time{}
+	}
 
 	if !reflect.DeepEqual(have, want) {
 		data, _ := json.Marshal(have)

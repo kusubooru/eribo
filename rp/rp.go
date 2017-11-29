@@ -199,8 +199,8 @@ var feedback = []string{
 	`/me nods affirmatively, "Understood %s-sama. Your feedback has been recorded".`,
 }
 
-func Tomato(name string) string {
-	if name == "Ryuunosuke Akashaka" {
+func Tomato(name, owner string) string {
+	if name == owner {
 		var s = `/me humbly offers a juicy and fresh-looking tomato to %s, "A
 		pleasure to serve you Dragon-sama".`
 		return fmt.Sprintf(clean(s), name)

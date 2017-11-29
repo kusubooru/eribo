@@ -62,7 +62,9 @@ type Store interface {
 	GetImages() ([]*Image, error)
 
 	AddFeedback(f *Feedback) error
-	GetFeedback() ([]*Feedback, error)
+	GetAllFeedback(limit, offset int) ([]*Feedback, error)
+	GetRecentFeedback(limit, offset int) ([]*Feedback, error)
 
 	Log(e *Event) error
+	GetRecentLogs(limit, offset int) ([]*Event, error)
 }

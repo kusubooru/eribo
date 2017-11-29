@@ -10,8 +10,17 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/websocket"
+)
+
+var (
+	// ErrMsgTooLong is returned if there is an attempt to send a message
+	// through MSG or PRI that exceeds the server's variables (chat_max and
+	// priv_max respectively). The message is never send to the server. If the
+	// message was sent, the server would reply with an ERR.
+	ErrMsgTooLong = errors.New("message too long")
 )
 
 const (
@@ -381,10 +390,54 @@ type LCH struct {
 func (c LCH) CmdEncode() ([]byte, error)   { return cmdEncode("LCH", c) }
 func (c *LCH) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
+type VAR struct {
+	Variable string          `json:"variable"`
+	Value    json.RawMessage `json:"value"`
+	ChatMax  int
+	PrivMax  int
+}
+
+func (c VAR) CmdEncode() ([]byte, error) { return cmdEncode("VAR", c) }
+func (c *VAR) CmdDecode(data []byte) error {
+	if err := cmdDecode(data, c); err != nil {
+		return err
+	}
+	switch c.Variable {
+	case "chat_max":
+		var chatMax int
+		if err := json.Unmarshal(c.Value, &chatMax); err != nil {
+			return err
+		}
+		c.ChatMax = chatMax
+	case "priv_max":
+		var privMax int
+		if err := json.Unmarshal(c.Value, &privMax); err != nil {
+			return err
+		}
+		c.PrivMax = privMax
+	}
+	return nil
+}
+
 type Client struct {
 	ws      *websocket.Conn
 	Name    string
 	Version string
+	mu      sync.Mutex
+	chatMax int
+	privMax int
+}
+
+func (c *Client) SetChatMax(max int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.chatMax = max
+}
+
+func (c *Client) SetPrivMax(max int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.privMax = max
 }
 
 func (c *Client) Close() error {
@@ -410,7 +463,13 @@ type RawMessage struct {
 }
 
 func Connect(url string) (*Client, error) {
-	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
+	dialer := websocket.DefaultDialer
+	// Sending more than 4096 bytes (which is the default) causes a silent
+	// disconnect. Increasing the WriteBuffer fixes the issue.
+	//
+	// See: https://github.com/gorilla/websocket/issues/245
+	dialer.WriteBufferSize = 52000
+	ws, _, err := dialer.Dial(url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("dial: %v", err)
 	}
@@ -497,6 +556,12 @@ func DecodeCommand(data []byte) (Command, error) {
 			return nil, fmt.Errorf("LCH decode: %v", err)
 		}
 		return lch, nil
+	case isCmd(data, "VAR"):
+		v := new(VAR)
+		if err := v.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("VAR decode: %v", err)
+		}
+		return v, nil
 	case isCmd(data, "ERR"):
 		err := new(ERR)
 		if err := err.CmdDecode(data); err != nil {
@@ -520,6 +585,9 @@ func (c *Client) SendMSG(msg *MSG) error {
 	if err != nil {
 		return fmt.Errorf("MSG encode failed: %v", err)
 	}
+	if c.chatMax != 0 && len(data) > c.chatMax {
+		return ErrMsgTooLong
+	}
 
 	if err := c.writeMessage(data); err != nil {
 		return fmt.Errorf("SendMSG error: %v", err)
@@ -531,6 +599,9 @@ func (c *Client) SendPRI(pri *PRI) error {
 	data, err := pri.CmdEncode()
 	if err != nil {
 		return fmt.Errorf("PRI encode failed: %v", err)
+	}
+	if c.privMax != 0 && len(data) > c.privMax {
+		return ErrMsgTooLong
 	}
 
 	if err := c.writeMessage(data); err != nil {
@@ -684,8 +755,6 @@ func GetCharacterData(name, account, ticket string) (*CharacterData, error) {
 	if err != nil {
 		return nil, fmt.Errorf("post character data failed: %v", err)
 	}
-	//b, _ := ioutil.ReadAll(resp.Body)
-	//fmt.Println(string(b))
 
 	d := new(CharacterData)
 	if err := json.NewDecoder(resp.Body).Decode(d); err != nil {

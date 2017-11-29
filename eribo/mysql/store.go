@@ -58,10 +58,19 @@ func (db *EriboStore) GetImages() ([]*eribo.Image, error) {
 	return images, nil
 }
 
-func (db *EriboStore) GetFeedback() ([]*eribo.Feedback, error) {
+func (db *EriboStore) GetAllFeedback(limit, offset int) ([]*eribo.Feedback, error) {
 	feedback := []*eribo.Feedback{}
-	const query = `SELECT * FROM feedback`
-	if err := db.Select(&feedback, query); err != nil {
+	const query = `SELECT * FROM feedback LIMIT ? OFFSET ?`
+	if err := db.Select(&feedback, query, limit, offset); err != nil {
+		return nil, err
+	}
+	return feedback, nil
+}
+
+func (db *EriboStore) GetRecentFeedback(limit, offset int) ([]*eribo.Feedback, error) {
+	feedback := []*eribo.Feedback{}
+	const query = `SELECT * FROM feedback ORDER BY created DESC LIMIT ? OFFSET ?`
+	if err := db.Select(&feedback, query, limit, offset); err != nil {
 		return nil, err
 	}
 	return feedback, nil
@@ -90,4 +99,13 @@ func (db *EriboStore) GetLog(id int64) (*eribo.Event, error) {
 		return nil, err
 	}
 	return e, nil
+}
+
+func (db *EriboStore) GetRecentLogs(limit, offset int) ([]*eribo.Event, error) {
+	logs := []*eribo.Event{}
+	const query = `SELECT * FROM log ORDER BY created DESC LIMIT ? OFFSET ?`
+	if err := db.Select(&logs, query, limit, offset); err != nil {
+		return nil, err
+	}
+	return logs, nil
 }
