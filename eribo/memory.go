@@ -1,6 +1,7 @@
 package eribo
 
 import (
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -12,6 +13,10 @@ type Player struct {
 	Name   string
 	Role   flist.Role
 	Status flist.Status
+}
+
+func (p Player) String() string {
+	return fmt.Sprintf("Name: %q, Status: %q, Role: %q", p.Name, p.Status, p.Role)
 }
 
 type PlayerMap struct {

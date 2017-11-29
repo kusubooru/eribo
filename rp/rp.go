@@ -411,7 +411,7 @@ func RandJojo(user string) string {
 func Loth(user string, loth *eribo.Loth, isNew bool) string {
 	switch {
 	case loth == nil:
-		msg := `Unable to find eligible victim.`
+		msg := `Unable to find eligible target.`
 
 		return fmt.Sprintf(clean(msg))
 	case loth != nil && !isNew:
@@ -420,7 +420,7 @@ func Loth(user string, loth *eribo.Loth, isNew bool) string {
 		return fmt.Sprintf(clean(msg), loth.Name, loth.TimeLeft())
 	case loth != nil && isNew && user == loth.Name:
 		msg := `/me appears to be malfunctioning as it doesn't seem to be
-		seeking for other victims and turns towards the person that issued the
+		seeking for other targets and turns towards the person that issued the
 		command. It grabs %s and injects them with the serum instead!`
 
 		return fmt.Sprintf(clean(msg), loth.Name)

@@ -458,81 +458,49 @@ func getCharDataAndSetRole(name, account, password string, playerMap *eribo.Play
 }
 
 func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo.ChannelMap, botName, owner string) {
-	switch {
-	case strings.HasPrefix(m.Message, eribo.CmdTieup.String()):
-		resp := &flist.MSG{
-			Channel: m.Channel,
-			Message: rp.RandTieUp(m.Character),
-		}
-		e := &eribo.Event{Command: eribo.CmdTieup, Player: m.Character, Channel: m.Channel}
-		if err := store.Log(e); err != nil {
-			log.Printf("error logging %v: %v", eribo.CmdTieup, err)
-		}
-		if err := c.SendMSG(resp); err != nil {
-			log.Printf("error sending %v response: %v", eribo.CmdTieup, err)
-		}
-	case strings.HasPrefix(m.Message, eribo.CmdTomato.String()):
-		resp := &flist.MSG{
-			Channel: m.Channel,
-			Message: rp.Tomato(m.Character, owner),
-		}
-		e := &eribo.Event{Command: eribo.CmdTomato, Player: m.Character, Channel: m.Channel}
-		if err := store.Log(e); err != nil {
-			log.Printf("error logging %v: %v", eribo.CmdTomato, err)
-		}
-		if err := c.SendMSG(resp); err != nil {
-			log.Printf("error sending %v response: %v", eribo.CmdTomato, err)
-		}
-	case strings.HasPrefix(m.Message, eribo.CmdTktool.String()):
-		resp := &flist.MSG{
-			Channel: m.Channel,
-			Message: rp.RandTktool(m.Character),
-		}
-		e := &eribo.Event{Command: eribo.CmdTktool, Player: m.Character, Channel: m.Channel}
-		if err := store.Log(e); err != nil {
-			log.Printf("error logging %v: %v", eribo.CmdTktool, err)
-		}
-		if err := c.SendMSG(resp); err != nil {
-			log.Printf("error sending %v response: %v", eribo.CmdTktool, err)
-		}
-	case strings.HasPrefix(m.Message, eribo.CmdVonprove.String()):
-		resp := &flist.MSG{
-			Channel: m.Channel,
-			Message: rp.RandVonprove(m.Character),
-		}
-		e := &eribo.Event{Command: eribo.CmdVonprove, Player: m.Character, Channel: m.Channel}
-		if err := store.Log(e); err != nil {
-			log.Printf("error logging %v: %v", eribo.CmdVonprove, err)
-		}
-		if err := c.SendMSG(resp); err != nil {
-			log.Printf("error sending %v response: %v", eribo.CmdVonprove, err)
-		}
-	case strings.HasPrefix(m.Message, eribo.CmdJojo.String()):
-		resp := &flist.MSG{
-			Channel: m.Channel,
-			Message: rp.RandJojo(m.Character),
-		}
-		e := &eribo.Event{Command: eribo.CmdJojo, Player: m.Character, Channel: m.Channel}
-		if err := store.Log(e); err != nil {
-			log.Printf("error logging %v: %v", eribo.CmdJojo, err)
-		}
-		if err := c.SendMSG(resp); err != nil {
-			log.Printf("error sending %v response: %v", eribo.CmdJojo, err)
-		}
-	case strings.HasPrefix(m.Message, eribo.CmdLoth.String()):
+	var msg string
+	cmd := eribo.ParseCommand(m.Message)
+	switch cmd {
+	case eribo.CmdTieup:
+		msg = rp.RandTieUp(m.Character)
+	case eribo.CmdTomato:
+		msg = rp.Tomato(m.Character, owner)
+	case eribo.CmdTktool:
+		msg = rp.RandTktool(m.Character)
+	case eribo.CmdVonprove:
+		msg = rp.RandVonprove(m.Character)
+	case eribo.CmdJojo:
+		msg = rp.RandJojo(m.Character)
+	case eribo.CmdLoth:
 		loth, isNew := channelMap.ChooseLoth(m.Channel, botName, 1*time.Hour)
-		resp := &flist.MSG{
-			Channel: m.Channel,
-			Message: rp.Loth(m.Character, loth, isNew),
-		}
-		e := &eribo.Event{Command: eribo.CmdLoth, Player: m.Character, Channel: m.Channel}
+		msg = rp.Loth(m.Character, loth, isNew)
+	}
+	if msg != "" {
+		e := &eribo.Event{Command: cmd, Player: m.Character, Channel: m.Channel}
 		if err := store.Log(e); err != nil {
-			log.Printf("error logging %v: %v", eribo.CmdLoth, err)
+			log.Printf("error logging %v: %v", cmd, err)
 		}
+
+		resp := &flist.MSG{Channel: m.Channel, Message: msg}
 		if err := c.SendMSG(resp); err != nil {
-			log.Printf("error sending %v response: %v", eribo.CmdLoth, err)
+			log.Printf("error sending %v response: %v", cmd, err)
 		}
 	}
+}
+
+func atoiLimitOffset(args []string) (int, int) {
+	limit, offset := 10, 0
+	if len(args) > 0 {
+		if lim, err := strconv.Atoi(args[0]); err == nil {
+			limit = lim
+		}
+	}
+	if len(args) > 1 {
+		if off, err := strconv.Atoi(args[1]); err == nil {
+			offset = off
+		}
+	}
+	return limit, offset
 }
 
 func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channelMap *eribo.ChannelMap, botName, owner string) {
@@ -540,49 +508,33 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		return
 	}
 
-	var cmd string
 	var msg string
-	switch {
-	case strings.HasPrefix(pri.Message, "!channelmap"):
-		cmd = "!channelmap"
+	cmd, args := eribo.ParseCustomCommand(pri.Message)
+	switch cmd {
+	case "!channelmap":
 		var buf bytes.Buffer
 		buf.WriteString("\n")
 		channelMap.ForEach(func(channel string, pm *eribo.PlayerMap) {
 			buf.WriteString(fmt.Sprintf("Channel: %q\n", channel))
 			pm.ForEach(func(name string, p *eribo.Player) {
-				buf.WriteString(fmt.Sprintf("|- Name: %q, Status: %q, Role: %q\n", p.Name, p.Status, p.Role))
+				buf.WriteString(fmt.Sprintf("|- %v\n", p))
 			})
 		})
 		msg = buf.String()
-	case strings.HasPrefix(pri.Message, "!showfeed"):
-		cmd = "!showfeed"
-		feedback, err := store.GetRecentFeedback(10, 0)
+	case "!showfeed":
+		limit, offset := atoiLimitOffset(args)
+		feedback, err := store.GetRecentFeedback(limit, offset)
 		if err != nil {
 			log.Printf("%v error getting feedback: %v", cmd, err)
 		}
 		var buf bytes.Buffer
 		buf.WriteString("\n")
 		for _, fb := range feedback {
-			buf.WriteString(fmt.Sprintf("%4d: %v by %s - %q\n", fb.ID, fb.Created.Format(time.Stamp), fb.Player, fb.Message))
+			buf.WriteString(fmt.Sprintf("%v\n", fb))
 		}
 		msg = buf.String()
-	case strings.HasPrefix(pri.Message, "!showlogs"):
-		cmd = "!showlogs"
-		limit, offset := 10, 0
-		body := strings.TrimSpace(strings.TrimPrefix(pri.Message, cmd))
-		if body != "" {
-			args := strings.Split(body, " ")
-			if len(args) > 0 {
-				if lim, err := strconv.Atoi(args[0]); err == nil {
-					limit = lim
-				}
-			}
-			if len(args) > 1 {
-				if off, err := strconv.Atoi(args[1]); err == nil {
-					offset = off
-				}
-			}
-		}
+	case "!showlogs":
+		limit, offset := atoiLimitOffset(args)
 		logs, err := store.GetRecentLogs(limit, offset)
 		if err != nil {
 			log.Printf("%v error getting log: %v", cmd, err)
@@ -590,7 +542,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		var buf bytes.Buffer
 		buf.WriteString("\n")
 		for _, lg := range logs {
-			buf.WriteString(fmt.Sprintf("%4d: %v by %s - %s - %q\n", lg.ID, lg.Created.Format(time.Stamp), lg.Player, lg.Command, lg.Channel))
+			buf.WriteString(fmt.Sprintf("%v\n", lg))
 		}
 		msg = buf.String()
 	}

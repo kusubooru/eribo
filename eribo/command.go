@@ -61,6 +61,27 @@ func makeCommand(s string) Command {
 	}
 }
 
+func ParseCommand(s string) Command {
+	cmd := strings.Fields(s)
+	if len(cmd) == 0 {
+		return CmdUnknown
+	}
+	return makeCommand(cmd[0])
+}
+
+func ParseCustomCommand(s string) (cmd string, args []string) {
+	args = []string{}
+	f := strings.Fields(s)
+	if len(f) == 0 {
+		return
+	}
+	cmd = f[0]
+	if len(f) > 1 {
+		args = f[1:]
+	}
+	return
+}
+
 func (c Command) HasPrefix(s string) bool {
 	return strings.HasPrefix(s, c.String())
 }

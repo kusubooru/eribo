@@ -1,6 +1,7 @@
 package eribo
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -49,12 +50,20 @@ type Feedback struct {
 	Created time.Time
 }
 
+func (f Feedback) String() string {
+	return fmt.Sprintf("%4d: %v by %s - %q", f.ID, f.Created.Format(time.Stamp), f.Player, f.Message)
+}
+
 type Event struct {
 	ID      int64
 	Command Command
 	Player  string
 	Channel string
 	Created time.Time
+}
+
+func (e Event) String() string {
+	return fmt.Sprintf("%4d: %v by %s - %s - %q", e.ID, e.Created.Format(time.Stamp), e.Player, e.Command, e.Channel)
 }
 
 type Store interface {
