@@ -22,9 +22,9 @@ func init() {
 
 func setup(t *testing.T) *EriboStore {
 	if *pass == "" {
-		t.Errorf("No password provided for user %q to connect to MySQL and run the tests.", *user)
-		t.Errorf("These tests need a MySQL account %q that has access to test database %q.", *user, *dbname)
-		t.Fatal("Use: go test -tags=db -pass '<db password>'")
+		t.Logf("No password provided for user %q to connect to MySQL and run the tests.", *user)
+		t.Logf("These tests need a MySQL account %q that has access to test database %q.", *user, *dbname)
+		t.Skipf("Use: go test -pass '<db password>'")
 	}
 	datasource := fmt.Sprintf("%s:%s@(%s:%s)/%s?parseTime=true", *user, *pass, *host, *port, *dbname)
 	s, err := NewEriboStore(datasource)
