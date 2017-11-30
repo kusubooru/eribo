@@ -6,7 +6,7 @@ import (
 )
 
 type Drop struct {
-	Name   string
+	Item   interface{}
 	Weight int
 }
 
@@ -24,10 +24,10 @@ func NewTable(d []Drop) *Table {
 	return &Table{drops: d}
 }
 
-func (t *Table) Add(name string, weight int) {
+func (t *Table) Add(item interface{}, weight int) {
 	t.Lock()
 	defer t.Unlock()
-	d := Drop{Name: name, Weight: weight}
+	d := Drop{Item: item, Weight: weight}
 	t.drops = append(t.drops, d)
 }
 
@@ -41,7 +41,7 @@ func (t Table) TotalWeight() int {
 	return totalWeight
 }
 
-func (t Table) Roll(seed int64) (int, string) {
+func (t Table) Roll(seed int64) (int, interface{}) {
 	t.RLock()
 	defer t.RUnlock()
 	totalWeight := t.TotalWeight()
@@ -58,5 +58,5 @@ func (t Table) Roll(seed int64) (int, string) {
 			break
 		}
 	}
-	return drop, t.drops[drop].Name
+	return drop, t.drops[drop].Item
 }

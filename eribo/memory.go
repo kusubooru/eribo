@@ -2,11 +2,11 @@ package eribo
 
 import (
 	"fmt"
-	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/kusubooru/eribo/flist"
+	"github.com/kusubooru/eribo/loot"
 )
 
 type Player struct {
@@ -173,42 +173,63 @@ func (c ChannelMap) GetActivePlayers() *PlayerMap {
 	return actives
 }
 
-func (c *ChannelMap) ChooseLoth(channel, botName string, d time.Duration) (*Loth, bool) {
+func (c *ChannelMap) ChooseLoth(playerName, channel, botName string, d time.Duration) (*Loth, bool, []*Player) {
 	loth := c.lothm[channel]
+	targets := make([]*Player, 0)
 	if loth != nil && !loth.Expired() {
-		return loth, false
+		return loth, false, targets
 	}
-	victims := make([]*Player, 0)
 	pm := c.GetActivePlayers()
 	pm.ForEach(func(name string, p *Player) {
 		c.RLock()
 		defer c.RUnlock()
-		if p.Role == flist.RoleFullDom || p.Role == flist.RoleSomeDom || p.Role == "" {
+		if p.Role == flist.RoleFullDom || p.Role == "" {
 			return
 		}
 		if p.Name == botName {
 			return
 		}
-		victims = append(victims, p)
+		targets = append(targets, p)
 	})
-	if len(victims) == 0 {
-		return nil, false
+	if len(targets) == 0 {
+		return nil, false, targets
 	}
-	victim := randVictim(victims)
+	target := randTarget(playerName, targets)
+	if target == nil {
+		return nil, false, targets
+	}
 	c.Lock()
 	defer c.Unlock()
-	c.lothm[channel] = NewLoth(victim, d)
-	return c.lothm[channel], true
+	c.lothm[channel] = NewLoth(target, d)
+	return c.lothm[channel], true, targets
 }
 
-func newRand(n int) int {
+func randTarget(playerName string, targets []*Player) *Player {
+	t := &loot.Table{}
+	for _, p := range targets {
+		var weight int
+		switch p.Role {
+		case flist.RoleSomeDom:
+			weight = 10
+		case flist.RoleSwitch:
+			weight = 40
+		case flist.RoleSomeSub:
+			weight = 45
+		case flist.RoleFullSub:
+			weight = 50
+		}
+		if p.Name == playerName {
+			weight = 5
+		}
+		t.Add(p, weight)
+	}
 	seed := time.Now().UnixNano()
-	r := rand.New(rand.NewSource(seed))
-	return r.Intn(n)
-}
-
-func randVictim(victims []*Player) *Player {
-	return victims[newRand(len(victims))]
+	_, loth := t.Roll(seed)
+	p, ok := loth.(*Player)
+	if !ok {
+		return nil
+	}
+	return p
 }
 
 func (c ChannelMap) GetChannel(channel string) (*PlayerMap, bool) {

@@ -8,10 +8,10 @@ import (
 
 func TestTable_Roll(t *testing.T) {
 	drops := []Drop{
-		{Name: "sword", Weight: 100},
-		{Name: "shield", Weight: 400},
-		{Name: "null", Weight: 499},
-		{Name: "legendary", Weight: 1},
+		{Item: "sword", Weight: 100},
+		{Item: "shield", Weight: 400},
+		{Item: "null", Weight: 499},
+		{Item: "legendary", Weight: 1},
 	}
 	table := NewTable(drops)
 	m := make(map[int]int, len(drops))

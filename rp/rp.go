@@ -408,7 +408,7 @@ func RandJojo(user string) string {
 	return j.Apply(user)
 }
 
-func Loth(user string, loth *eribo.Loth, isNew bool) string {
+func Loth(user string, loth *eribo.Loth, isNew bool, targets []*eribo.Player) string {
 	switch {
 	case loth == nil:
 		msg := `Unable to find eligible target.`
@@ -418,7 +418,17 @@ func Loth(user string, loth *eribo.Loth, isNew bool) string {
 		msg := `Current 'lee of the hour is %s. Time left is %s.`
 
 		return fmt.Sprintf(clean(msg), loth.Name, loth.TimeLeft())
-	case loth != nil && isNew && user == loth.Name:
+	case loth != nil && isNew && user == loth.Name && len(targets) == 1:
+		msg := `/me looks around the room while performing calculations and
+		seeking potentials targets. After a few seconds it stops and stares at
+		what seems to be the only eligible target. It grabs %s and injects them
+		with a powerful serum which numbs their strength and reflexes but
+		sharply increases their sensitivity. It leaves the victim half
+		incapacitated on the floor then proceeds to announce to the whole room:
+		"New 'lee of the hour is %s!"`
+
+		return fmt.Sprintf(clean(msg), loth.Name, loth.Name)
+	case loth != nil && isNew && user == loth.Name && len(targets) != 1:
 		msg := `/me appears to be malfunctioning as it doesn't seem to be
 		seeking for other targets and turns towards the person that issued the
 		command. It grabs %s and injects them with the serum instead!`

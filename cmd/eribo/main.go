@@ -472,8 +472,8 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo
 	case eribo.CmdJojo:
 		msg = rp.RandJojo(m.Character)
 	case eribo.CmdLoth:
-		loth, isNew := channelMap.ChooseLoth(m.Channel, botName, 1*time.Hour)
-		msg = rp.Loth(m.Character, loth, isNew)
+		loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour)
+		msg = rp.Loth(m.Character, loth, isNew, targets)
 	}
 	if msg != "" {
 		e := &eribo.Event{Command: cmd, Player: m.Character, Channel: m.Channel}
