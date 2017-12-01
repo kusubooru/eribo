@@ -14,10 +14,12 @@ func TestAddMessageWithURLs(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
+	created := time.Now().UTC().Add(time.Second).Truncate(1 * time.Microsecond)
 	m := &eribo.Message{
 		Channel: "foo",
 		Player:  "bar",
 		Message: "baz",
+		Created: created,
 	}
 	urls := []string{"http://url1", "http://url2"}
 	if err := s.AddMessageWithURLs(m, urls); err != nil {
@@ -32,14 +34,14 @@ func TestAddMessageWithURLs(t *testing.T) {
 		t.Fatalf("GetImages produced %d results, want %d", got, want)
 	}
 	want := []*eribo.Image{
-		{ID: 1, URL: "http://url1", MessageID: 1, Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz"}},
-		{ID: 2, URL: "http://url2", MessageID: 1, Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz"}},
+		{ID: 1, URL: "http://url1", MessageID: 1, Created: created,
+			Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz", Created: created},
+		},
+		{ID: 2, URL: "http://url2", MessageID: 1, Created: created,
+			Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz", Created: created},
+		},
 	}
-	// ignore created
-	for _, img := range images {
-		img.Created = time.Time{}
-		img.Message.Created = time.Time{}
-	}
+
 	if have := images; !reflect.DeepEqual(have, want) {
 		data, _ := json.Marshal(have)
 		fmt.Println(string(data))

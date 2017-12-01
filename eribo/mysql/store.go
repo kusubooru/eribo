@@ -2,11 +2,15 @@ package mysql
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/kusubooru/eribo/eribo"
 )
 
 func (db *EriboStore) AddMessageWithURLs(m *eribo.Message, urls []string) (err error) {
+	if (m.Created == time.Time{}) {
+		m.Created = time.Now().UTC().Truncate(1 * time.Microsecond)
+	}
 	tx, err := db.Beginx()
 	if err != nil {
 		return err
@@ -21,7 +25,8 @@ func (db *EriboStore) AddMessageWithURLs(m *eribo.Message, urls []string) (err e
 		err = tx.Commit()
 	}()
 
-	r, err := tx.Exec("insert into messages(message, player, channel) values (?, ?, ?)", m.Message, m.Player, m.Channel)
+	const query = `INSERT INTO messages(message, player, channel, created) VALUES (?, ?, ?, ?)`
+	r, err := tx.Exec(query, m.Message, m.Player, m.Channel, m.Created)
 	if err != nil {
 		return err
 	}
@@ -32,7 +37,7 @@ func (db *EriboStore) AddMessageWithURLs(m *eribo.Message, urls []string) (err e
 	}
 
 	for _, u := range urls {
-		_, err := tx.Exec("insert into images(url, message_id) values (?, ?)", u, messageID)
+		_, err := tx.Exec("INSERT INTO images(url, message_id, created) VALUES (?, ?, ?)", u, messageID, m.Created)
 		if err != nil {
 			return err
 		}

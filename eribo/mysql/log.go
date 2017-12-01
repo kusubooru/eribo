@@ -38,7 +38,7 @@ func (db *EriboStore) GetRecentCmdLogs(limit, offset int) ([]*eribo.CmdLog, erro
 }
 
 func (db *EriboStore) AddLothLog(l *eribo.LothLog) error {
-	if l.Created == (time.Time{}) {
+	if (l.Created == time.Time{}) {
 		l.Created = time.Now().UTC().Truncate(1 * time.Microsecond)
 	}
 	var (
