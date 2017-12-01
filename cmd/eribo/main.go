@@ -68,9 +68,10 @@ func main() {
 	)
 	flag.Parse()
 
+	botVersion := fmt.Sprintf("%s %s (runtime: %s)", os.Args[0], theVersion, runtime.Version())
 	versionArg = len(os.Args) > 1 && os.Args[1] == "version"
 	if *showVersion || versionArg {
-		fmt.Printf("%s %s (runtime: %s)\n", os.Args[0], theVersion, runtime.Version())
+		fmt.Println(botVersion)
 		return
 	}
 
@@ -180,6 +181,7 @@ func main() {
 		*account,
 		*password,
 		*character,
+		botVersion,
 		*owner,
 		mappingList,
 		store,
@@ -300,6 +302,7 @@ func handleMessages(
 	account string,
 	password string,
 	botName string,
+	botVersion string,
 	owner string,
 	mappingList *flist.MappingList,
 	store eribo.Store,
@@ -352,7 +355,7 @@ func handleMessages(
 			if err := gatherFeedback(c, store, pri); err != nil {
 				log.Println("gather feedback err:", err)
 			}
-			respondPrivOwner(c, store, pri, channelMap, botName, owner)
+			respondPrivOwner(c, store, pri, channelMap, botName, botVersion, owner)
 		case ors := <-orsch:
 			flist.SortChannelsByTitle(ors.Channels)
 			for _, title := range roomTitles {
@@ -507,7 +510,7 @@ func atoiLimitOffset(args []string) (int, int) {
 	return limit, offset
 }
 
-func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channelMap *eribo.ChannelMap, botName, owner string) {
+func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channelMap *eribo.ChannelMap, botName, botVersion, owner string) {
 	if pri.Character != owner {
 		return
 	}
@@ -515,6 +518,8 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 	var msg string
 	cmd, args := eribo.ParseCustomCommand(pri.Message)
 	switch cmd {
+	case "!version":
+		msg = botVersion
 	case "!channelmap":
 		var buf bytes.Buffer
 		buf.WriteString("\n")
