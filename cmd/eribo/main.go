@@ -534,7 +534,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 			})
 		})
 		msg = buf.String()
-	case "!showfeed":
+	case "!feed":
 		limit, offset := atoiLimitOffset(args)
 		feedback, err := store.GetRecentFeedback(limit, offset)
 		if err != nil {
@@ -546,11 +546,23 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 			buf.WriteString(fmt.Sprintf("%v\n", fb))
 		}
 		msg = buf.String()
-	case "!showlogs":
+	case "!cmdlogs":
 		limit, offset := atoiLimitOffset(args)
 		logs, err := store.GetRecentCmdLogs(limit, offset)
 		if err != nil {
-			log.Printf("%v error getting log: %v", cmd, err)
+			log.Printf("%v error getting cmd logs: %v", cmd, err)
+		}
+		var buf bytes.Buffer
+		buf.WriteString("\n")
+		for _, lg := range logs {
+			buf.WriteString(fmt.Sprintf("%v\n", lg))
+		}
+		msg = buf.String()
+	case "!lothlogs":
+		limit, offset := atoiLimitOffset(args)
+		logs, err := store.GetRecentLothLogs(limit, offset)
+		if err != nil {
+			log.Printf("%v error getting loth logs: %v", cmd, err)
 		}
 		var buf bytes.Buffer
 		buf.WriteString("\n")

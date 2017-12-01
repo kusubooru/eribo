@@ -78,6 +78,20 @@ type LothLog struct {
 	Targets Targets
 }
 
+func (l LothLog) String() string {
+	isNew := "0"
+	if l.IsNew {
+		isNew = "1"
+	}
+	return fmt.Sprintf("%4d: %v - %v> %s by %s [%s %v %v]",
+		l.ID,
+		l.Created.Format(time.Stamp),
+		l.Expires.Format(time.Stamp),
+		isNew,
+		l.Issuer,
+		l.Name, l.Role, l.Status)
+}
+
 type Targets []*Player
 
 func (t Targets) Value() (driver.Value, error) {
