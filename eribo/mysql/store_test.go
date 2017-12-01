@@ -55,9 +55,11 @@ func TestAddFeedback(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
+	created := time.Now().UTC().Add(1 * time.Second).Truncate(1 * time.Microsecond)
 	f := &eribo.Feedback{
 		Player:  "foo",
 		Message: "bar",
+		Created: created,
 	}
 	if err := s.AddFeedback(f); err != nil {
 		t.Fatal("AddFeedback failed:", err)
@@ -71,12 +73,9 @@ func TestAddFeedback(t *testing.T) {
 		t.Fatalf("GetFeedback produced %d results, want %d", got, want)
 	}
 	want := []*eribo.Feedback{
-		{ID: 1, Player: "foo", Message: "bar"},
+		{ID: 1, Player: "foo", Message: "bar", Created: created},
 	}
-	// ignore created
-	for _, f := range feedback {
-		f.Created = time.Time{}
-	}
+
 	if have := feedback; !reflect.DeepEqual(have, want) {
 		data, _ := json.Marshal(have)
 		fmt.Println(string(data))
@@ -90,11 +89,16 @@ func TestGetRecentFeedback(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
-	f := &eribo.Feedback{
-		Player:  "foo",
-		Message: "bar",
+	created1 := time.Now().UTC().Add(1 * time.Second).Truncate(1 * time.Microsecond)
+	created2 := time.Now().UTC().Add(2 * time.Second).Truncate(1 * time.Microsecond)
+	created3 := time.Now().UTC().Add(3 * time.Second).Truncate(1 * time.Microsecond)
+
+	fb := []*eribo.Feedback{
+		{Player: "foo", Message: "bar", Created: created1},
+		{Player: "foo", Message: "bar", Created: created2},
+		{Player: "foo", Message: "bar", Created: created3},
 	}
-	for i := 0; i < 3; i++ {
+	for _, f := range fb {
 		if err := s.AddFeedback(f); err != nil {
 			t.Fatal("AddFeedback failed:", err)
 		}
@@ -106,13 +110,10 @@ func TestGetRecentFeedback(t *testing.T) {
 	}
 
 	want := []*eribo.Feedback{
-		{ID: 3, Player: "foo", Message: "bar"},
-		{ID: 2, Player: "foo", Message: "bar"},
+		{ID: 3, Player: "foo", Message: "bar", Created: created3},
+		{ID: 2, Player: "foo", Message: "bar", Created: created2},
 	}
-	// ignore created
-	for _, f := range feedback {
-		f.Created = time.Time{}
-	}
+
 	if have := feedback; !reflect.DeepEqual(have, want) {
 		data, _ := json.Marshal(have)
 		fmt.Println(string(data))

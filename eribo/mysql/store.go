@@ -82,7 +82,11 @@ func (db *EriboStore) GetRecentFeedback(limit, offset int) ([]*eribo.Feedback, e
 }
 
 func (db *EriboStore) AddFeedback(f *eribo.Feedback) error {
-	_, err := db.Exec("INSERT INTO feedback(message, player) VALUES (?, ?)", f.Message, f.Player)
+	if (f.Created == time.Time{}) {
+		f.Created = time.Now().UTC().Truncate(1 * time.Microsecond)
+	}
+	const query = `INSERT INTO feedback(message, player, created) VALUES (?, ?, ?)`
+	_, err := db.Exec(query, f.Message, f.Player, f.Created)
 	if err != nil {
 		return err
 	}
