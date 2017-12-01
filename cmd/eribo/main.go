@@ -334,7 +334,11 @@ func handleMessages(
 				log.Println("disconnect error:", err)
 			}
 			log.Println("waiting for reader to quit...")
-			<-quit
+			select {
+			case <-quit:
+			case <-time.After(10 * time.Second):
+				log.Println("reader took too long")
+			}
 			log.Println("exiting...")
 			return
 		case <-quit:
