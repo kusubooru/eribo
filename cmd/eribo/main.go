@@ -474,14 +474,14 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo
 	case eribo.CmdLoth:
 		loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour)
 		lothLog := &eribo.LothLog{Issuer: m.Character, Channel: m.Channel, Loth: loth, IsNew: isNew, Targets: targets}
-		if err := store.LothLog(lothLog); err != nil {
+		if err := store.AddLothLog(lothLog); err != nil {
 			log.Printf("error logging Loth: %v, isNew: %v, Targets: %v: %v", loth, isNew, targets, err)
 		}
 		msg = rp.Loth(m.Character, loth, isNew, targets)
 	}
 	if msg != "" {
 		e := &eribo.CmdLog{Command: cmd, Player: m.Character, Channel: m.Channel}
-		if err := store.CmdLog(e); err != nil {
+		if err := store.AddCmdLog(e); err != nil {
 			log.Printf("error logging %v: %v", cmd, err)
 		}
 
@@ -580,7 +580,7 @@ func gatherFeedback(c *flist.Client, store eribo.Store, pri *flist.PRI) error {
 		return nil
 	}
 	e := &eribo.CmdLog{Command: eribo.CmdFeedback, Player: pri.Character}
-	if err := store.CmdLog(e); err != nil {
+	if err := store.AddCmdLog(e); err != nil {
 		log.Printf("error logging %v: %v", eribo.CmdFeedback, err)
 	}
 	f := &eribo.Feedback{

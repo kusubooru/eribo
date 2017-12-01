@@ -7,15 +7,19 @@ import (
 	"github.com/kusubooru/eribo/flist"
 )
 
-func (db *EriboStore) CmdLog(e *eribo.CmdLog) error {
-	_, err := db.Exec("INSERT INTO log(command, player, channel) VALUES (?, ?, ?)", e.Command, e.Player, e.Channel)
+func (db *EriboStore) AddCmdLog(l *eribo.CmdLog) error {
+	if (l.Created == time.Time{}) {
+		l.Created = time.Now().UTC().Truncate(1 * time.Microsecond)
+	}
+	const query = `INSERT INTO log(command, player, channel, created) VALUES (?, ?, ?, ?)`
+	_, err := db.Exec(query, l.Command, l.Player, l.Channel, l.Created)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (db *EriboStore) GetLog(id int64) (*eribo.CmdLog, error) {
+func (db *EriboStore) GetCmdLog(id int64) (*eribo.CmdLog, error) {
 	e := &eribo.CmdLog{}
 	const query = `SELECT * FROM log where id = ?`
 	if err := db.Get(e, query, id); err != nil {
@@ -33,7 +37,7 @@ func (db *EriboStore) GetRecentCmdLogs(limit, offset int) ([]*eribo.CmdLog, erro
 	return logs, nil
 }
 
-func (db *EriboStore) LothLog(l *eribo.LothLog) error {
+func (db *EriboStore) AddLothLog(l *eribo.LothLog) error {
 	if l.Created == (time.Time{}) {
 		l.Created = time.Now().UTC().Truncate(1 * time.Microsecond)
 	}

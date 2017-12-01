@@ -109,9 +109,9 @@ type Store interface {
 	GetAllFeedback(limit, offset int) ([]*Feedback, error)
 	GetRecentFeedback(limit, offset int) ([]*Feedback, error)
 
-	CmdLog(e *CmdLog) error
+	AddCmdLog(e *CmdLog) error
 	GetRecentCmdLogs(limit, offset int) ([]*CmdLog, error)
 
-	LothLog(*LothLog) error
+	AddLothLog(*LothLog) error
 	GetRecentLothLogs(limit, offset int) ([]*LothLog, error)
 }

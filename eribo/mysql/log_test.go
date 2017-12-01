@@ -11,26 +11,25 @@ import (
 	"github.com/kusubooru/eribo/flist"
 )
 
-func TestLog(t *testing.T) {
+func TestCmdLog(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
-	e := &eribo.CmdLog{
+	created := time.Now().UTC().Truncate(1 * time.Microsecond)
+	l := &eribo.CmdLog{
 		Command: eribo.CmdTomato,
 		Player:  "foo",
+		Created: created,
 	}
-	if err := s.CmdLog(e); err != nil {
+	if err := s.AddCmdLog(l); err != nil {
 		t.Fatal("Log failed:", err)
 	}
 
-	have, err := s.GetLog(1)
+	have, err := s.GetCmdLog(1)
 	if err != nil {
 		t.Fatal("GetLog failed:", err)
 	}
-	want := &eribo.CmdLog{ID: 1, Player: "foo", Command: eribo.CmdTomato}
-
-	// ignore created
-	have.Created = time.Time{}
+	want := &eribo.CmdLog{ID: 1, Player: "foo", Command: eribo.CmdTomato, Created: created}
 
 	if !reflect.DeepEqual(have, want) {
 		data, _ := json.Marshal(have)
@@ -45,13 +44,18 @@ func TestGetRecentLogs(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
-	e := &eribo.CmdLog{
-		Command: eribo.CmdTomato,
-		Player:  "foo",
+	created1 := time.Now().UTC().Add(1 * time.Second).Truncate(1 * time.Microsecond)
+	created2 := time.Now().UTC().Add(2 * time.Second).Truncate(1 * time.Microsecond)
+	created3 := time.Now().UTC().Add(3 * time.Second).Truncate(1 * time.Microsecond)
+
+	logs := []*eribo.CmdLog{
+		{Command: eribo.CmdTomato, Player: "foo", Created: created1},
+		{Command: eribo.CmdTomato, Player: "foo", Created: created2},
+		{Command: eribo.CmdTomato, Player: "foo", Created: created3},
 	}
-	for i := 0; i < 3; i++ {
-		if err := s.CmdLog(e); err != nil {
-			t.Fatal("Log failed:", err)
+	for _, l := range logs {
+		if err := s.AddCmdLog(l); err != nil {
+			t.Fatal("AddCmdLog failed:", err)
 		}
 	}
 
@@ -60,13 +64,8 @@ func TestGetRecentLogs(t *testing.T) {
 		t.Fatal("GetRecentLogs failed:", err)
 	}
 	want := []*eribo.CmdLog{
-		{ID: 3, Player: "foo", Command: eribo.CmdTomato},
-		{ID: 2, Player: "foo", Command: eribo.CmdTomato},
-	}
-
-	// ignore created
-	for _, h := range have {
-		h.Created = time.Time{}
+		{ID: 3, Player: "foo", Command: eribo.CmdTomato, Created: created3},
+		{ID: 2, Player: "foo", Command: eribo.CmdTomato, Created: created2},
 	}
 
 	if !reflect.DeepEqual(have, want) {
@@ -99,7 +98,7 @@ func TestGetRecentLothLogs(t *testing.T) {
 	}
 
 	for _, lothLog := range logs {
-		if err := s.LothLog(lothLog); err != nil {
+		if err := s.AddLothLog(lothLog); err != nil {
 			t.Fatal("LogLoth failed:", err)
 		}
 	}
@@ -151,7 +150,7 @@ func TestLogLoth_unableToFindEligibleTarget(t *testing.T) {
 	}
 
 	for _, lothLog := range logs {
-		if err := s.LothLog(lothLog); err != nil {
+		if err := s.AddLothLog(lothLog); err != nil {
 			t.Fatal("LogLoth failed:", err)
 		}
 	}
