@@ -83,29 +83,3 @@ func (db *EriboStore) AddFeedback(f *eribo.Feedback) error {
 	}
 	return nil
 }
-
-func (db *EriboStore) Log(e *eribo.Event) error {
-	_, err := db.Exec("INSERT INTO log(command, player, channel) VALUES (?, ?, ?)", e.Command, e.Player, e.Channel)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (db *EriboStore) GetLog(id int64) (*eribo.Event, error) {
-	e := &eribo.Event{}
-	const query = `SELECT * FROM log where id = ?`
-	if err := db.Get(e, query, id); err != nil {
-		return nil, err
-	}
-	return e, nil
-}
-
-func (db *EriboStore) GetRecentLogs(limit, offset int) ([]*eribo.Event, error) {
-	logs := []*eribo.Event{}
-	const query = `SELECT * FROM log ORDER BY created DESC LIMIT ? OFFSET ?`
-	if err := db.Select(&logs, query, limit, offset); err != nil {
-		return nil, err
-	}
-	return logs, nil
-}

@@ -1,28 +1,30 @@
 package eribo
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"time"
 )
 
 type Loth struct {
 	*Player
-	expires time.Time
+	Expires time.Time
 }
 
 func NewLoth(p *Player, duration time.Duration) *Loth {
-	exp := time.Now().Add(duration)
-	return &Loth{Player: p, expires: exp}
+	exp := time.Now().Add(duration).UTC().Truncate(time.Microsecond)
+	return &Loth{Player: p, Expires: exp}
 }
 
 func (l Loth) TimeLeft() string {
-	d := time.Until(time.Time(l.expires))
+	d := time.Until(time.Time(l.Expires))
 	rounded := time.Duration(d.Nanoseconds()/time.Second.Nanoseconds()) * time.Second
 	return rounded.String()
 }
 
 func (l Loth) Expired() bool {
-	return time.Now().After(time.Time(l.expires))
+	return time.Now().After(time.Time(l.Expires))
 }
 
 // Store
@@ -66,6 +68,39 @@ func (e Event) String() string {
 	return fmt.Sprintf("%4d: %v by %s - %s - %q", e.ID, e.Created.Format(time.Stamp), e.Player, e.Command, e.Channel)
 }
 
+type LothLog struct {
+	ID      int64
+	Issuer  string
+	Channel string
+	Created time.Time
+	*Loth
+	IsNew   bool `db:"is_new"`
+	Targets Targets
+}
+
+type Targets []*Player
+
+func (t Targets) Value() (driver.Value, error) {
+	b, err := json.Marshal(t)
+	if err != nil {
+		return nil, err
+	}
+	return string(b), nil
+}
+
+func (t *Targets) Scan(value interface{}) error {
+	if value == nil {
+		return fmt.Errorf("attempt to scan nil targets")
+	}
+	switch v := value.(type) {
+	case string:
+		return json.Unmarshal([]byte(v), t)
+	case []byte:
+		return json.Unmarshal(v, t)
+	}
+	return fmt.Errorf("cannot scan targets value")
+}
+
 type Store interface {
 	AddMessageWithURLs(m *Message, urls []string) error
 	GetImages() ([]*Image, error)
@@ -76,4 +111,7 @@ type Store interface {
 
 	Log(e *Event) error
 	GetRecentLogs(limit, offset int) ([]*Event, error)
+
+	LogLoth(*LothLog) error
+	GetRecentLothLogs(limit, offset int) ([]*LothLog, error)
 }

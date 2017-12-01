@@ -473,6 +473,10 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo
 		msg = rp.RandJojo(m.Character)
 	case eribo.CmdLoth:
 		loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour)
+		lothLog := &eribo.LothLog{Issuer: m.Character, Channel: m.Channel, Loth: loth, IsNew: isNew, Targets: targets}
+		if err := store.LogLoth(lothLog); err != nil {
+			log.Printf("error logging Loth: %v, isNew: %v, Targets: %v: %v", loth, isNew, targets, err)
+		}
 		msg = rp.Loth(m.Character, loth, isNew, targets)
 	}
 	if msg != "" {
