@@ -7,7 +7,7 @@ import (
 	"github.com/kusubooru/eribo/flist"
 )
 
-func (db *EriboStore) Log(e *eribo.Event) error {
+func (db *EriboStore) CmdLog(e *eribo.CmdLog) error {
 	_, err := db.Exec("INSERT INTO log(command, player, channel) VALUES (?, ?, ?)", e.Command, e.Player, e.Channel)
 	if err != nil {
 		return err
@@ -15,8 +15,8 @@ func (db *EriboStore) Log(e *eribo.Event) error {
 	return nil
 }
 
-func (db *EriboStore) GetLog(id int64) (*eribo.Event, error) {
-	e := &eribo.Event{}
+func (db *EriboStore) GetLog(id int64) (*eribo.CmdLog, error) {
+	e := &eribo.CmdLog{}
 	const query = `SELECT * FROM log where id = ?`
 	if err := db.Get(e, query, id); err != nil {
 		return nil, err
@@ -24,8 +24,8 @@ func (db *EriboStore) GetLog(id int64) (*eribo.Event, error) {
 	return e, nil
 }
 
-func (db *EriboStore) GetRecentLogs(limit, offset int) ([]*eribo.Event, error) {
-	logs := []*eribo.Event{}
+func (db *EriboStore) GetRecentCmdLogs(limit, offset int) ([]*eribo.CmdLog, error) {
+	logs := []*eribo.CmdLog{}
 	const query = `SELECT * FROM log ORDER BY created DESC LIMIT ? OFFSET ?`
 	if err := db.Select(&logs, query, limit, offset); err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (db *EriboStore) GetRecentLogs(limit, offset int) ([]*eribo.Event, error) {
 	return logs, nil
 }
 
-func (db *EriboStore) LogLoth(l *eribo.LothLog) error {
+func (db *EriboStore) LothLog(l *eribo.LothLog) error {
 	if l.Created == (time.Time{}) {
 		l.Created = time.Now().UTC().Truncate(1 * time.Microsecond)
 	}

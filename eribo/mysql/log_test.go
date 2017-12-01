@@ -15,11 +15,11 @@ func TestLog(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
-	e := &eribo.Event{
+	e := &eribo.CmdLog{
 		Command: eribo.CmdTomato,
 		Player:  "foo",
 	}
-	if err := s.Log(e); err != nil {
+	if err := s.CmdLog(e); err != nil {
 		t.Fatal("Log failed:", err)
 	}
 
@@ -27,7 +27,7 @@ func TestLog(t *testing.T) {
 	if err != nil {
 		t.Fatal("GetLog failed:", err)
 	}
-	want := &eribo.Event{ID: 1, Player: "foo", Command: eribo.CmdTomato}
+	want := &eribo.CmdLog{ID: 1, Player: "foo", Command: eribo.CmdTomato}
 
 	// ignore created
 	have.Created = time.Time{}
@@ -45,21 +45,21 @@ func TestGetRecentLogs(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
-	e := &eribo.Event{
+	e := &eribo.CmdLog{
 		Command: eribo.CmdTomato,
 		Player:  "foo",
 	}
 	for i := 0; i < 3; i++ {
-		if err := s.Log(e); err != nil {
+		if err := s.CmdLog(e); err != nil {
 			t.Fatal("Log failed:", err)
 		}
 	}
 
-	have, err := s.GetRecentLogs(2, 0)
+	have, err := s.GetRecentCmdLogs(2, 0)
 	if err != nil {
 		t.Fatal("GetRecentLogs failed:", err)
 	}
-	want := []*eribo.Event{
+	want := []*eribo.CmdLog{
 		{ID: 3, Player: "foo", Command: eribo.CmdTomato},
 		{ID: 2, Player: "foo", Command: eribo.CmdTomato},
 	}
@@ -99,7 +99,7 @@ func TestGetRecentLothLogs(t *testing.T) {
 	}
 
 	for _, lothLog := range logs {
-		if err := s.LogLoth(lothLog); err != nil {
+		if err := s.LothLog(lothLog); err != nil {
 			t.Fatal("LogLoth failed:", err)
 		}
 	}
@@ -151,7 +151,7 @@ func TestLogLoth_unableToFindEligibleTarget(t *testing.T) {
 	}
 
 	for _, lothLog := range logs {
-		if err := s.LogLoth(lothLog); err != nil {
+		if err := s.LothLog(lothLog); err != nil {
 			t.Fatal("LogLoth failed:", err)
 		}
 	}

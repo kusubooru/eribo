@@ -56,7 +56,7 @@ func (f Feedback) String() string {
 	return fmt.Sprintf("%4d: %v by %s - %q", f.ID, f.Created.Format(time.Stamp), f.Player, f.Message)
 }
 
-type Event struct {
+type CmdLog struct {
 	ID      int64
 	Command Command
 	Player  string
@@ -64,8 +64,8 @@ type Event struct {
 	Created time.Time
 }
 
-func (e Event) String() string {
-	return fmt.Sprintf("%4d: %v by %s - %s - %q", e.ID, e.Created.Format(time.Stamp), e.Player, e.Command, e.Channel)
+func (l CmdLog) String() string {
+	return fmt.Sprintf("%4d: %v by %s - %s - %q", l.ID, l.Created.Format(time.Stamp), l.Player, l.Command, l.Channel)
 }
 
 type LothLog struct {
@@ -109,9 +109,9 @@ type Store interface {
 	GetAllFeedback(limit, offset int) ([]*Feedback, error)
 	GetRecentFeedback(limit, offset int) ([]*Feedback, error)
 
-	Log(e *Event) error
-	GetRecentLogs(limit, offset int) ([]*Event, error)
+	CmdLog(e *CmdLog) error
+	GetRecentCmdLogs(limit, offset int) ([]*CmdLog, error)
 
-	LogLoth(*LothLog) error
+	LothLog(*LothLog) error
 	GetRecentLothLogs(limit, offset int) ([]*LothLog, error)
 }

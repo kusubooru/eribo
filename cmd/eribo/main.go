@@ -474,14 +474,14 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo
 	case eribo.CmdLoth:
 		loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour)
 		lothLog := &eribo.LothLog{Issuer: m.Character, Channel: m.Channel, Loth: loth, IsNew: isNew, Targets: targets}
-		if err := store.LogLoth(lothLog); err != nil {
+		if err := store.LothLog(lothLog); err != nil {
 			log.Printf("error logging Loth: %v, isNew: %v, Targets: %v: %v", loth, isNew, targets, err)
 		}
 		msg = rp.Loth(m.Character, loth, isNew, targets)
 	}
 	if msg != "" {
-		e := &eribo.Event{Command: cmd, Player: m.Character, Channel: m.Channel}
-		if err := store.Log(e); err != nil {
+		e := &eribo.CmdLog{Command: cmd, Player: m.Character, Channel: m.Channel}
+		if err := store.CmdLog(e); err != nil {
 			log.Printf("error logging %v: %v", cmd, err)
 		}
 
@@ -539,7 +539,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		msg = buf.String()
 	case "!showlogs":
 		limit, offset := atoiLimitOffset(args)
-		logs, err := store.GetRecentLogs(limit, offset)
+		logs, err := store.GetRecentCmdLogs(limit, offset)
 		if err != nil {
 			log.Printf("%v error getting log: %v", cmd, err)
 		}
@@ -579,8 +579,8 @@ func gatherFeedback(c *flist.Client, store eribo.Store, pri *flist.PRI) error {
 	if message == "" {
 		return nil
 	}
-	e := &eribo.Event{Command: eribo.CmdFeedback, Player: pri.Character}
-	if err := store.Log(e); err != nil {
+	e := &eribo.CmdLog{Command: eribo.CmdFeedback, Player: pri.Character}
+	if err := store.CmdLog(e); err != nil {
 		log.Printf("error logging %v: %v", eribo.CmdFeedback, err)
 	}
 	f := &eribo.Feedback{
