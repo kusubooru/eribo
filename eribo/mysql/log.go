@@ -11,7 +11,7 @@ func (db *EriboStore) AddCmdLog(l *eribo.CmdLog) error {
 	if (l.Created == time.Time{}) {
 		l.Created = time.Now().UTC().Truncate(1 * time.Microsecond)
 	}
-	const query = `INSERT INTO log(command, player, channel, created) VALUES (?, ?, ?, ?)`
+	const query = `INSERT INTO cmd_logs(command, player, channel, created) VALUES (?, ?, ?, ?)`
 	_, err := db.Exec(query, l.Command, l.Player, l.Channel, l.Created)
 	if err != nil {
 		return err
@@ -21,7 +21,7 @@ func (db *EriboStore) AddCmdLog(l *eribo.CmdLog) error {
 
 func (db *EriboStore) GetCmdLog(id int64) (*eribo.CmdLog, error) {
 	e := &eribo.CmdLog{}
-	const query = `SELECT * FROM log where id = ?`
+	const query = `SELECT * FROM cmd_logs where id = ?`
 	if err := db.Get(e, query, id); err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func (db *EriboStore) GetCmdLog(id int64) (*eribo.CmdLog, error) {
 
 func (db *EriboStore) GetRecentCmdLogs(limit, offset int) ([]*eribo.CmdLog, error) {
 	logs := []*eribo.CmdLog{}
-	const query = `SELECT * FROM log ORDER BY created DESC LIMIT ? OFFSET ?`
+	const query = `SELECT * FROM cmd_logs ORDER BY created DESC LIMIT ? OFFSET ?`
 	if err := db.Select(&logs, query, limit, offset); err != nil {
 		return nil, err
 	}

@@ -10,7 +10,7 @@ func (db *EriboStore) createSchema() error {
 	if _, err := db.Exec(tableFeedback); err != nil {
 		return err
 	}
-	if _, err := db.Exec(tableLog); err != nil {
+	if _, err := db.Exec(tableCmdLogs); err != nil {
 		return err
 	}
 	if _, err := db.Exec(tableLothLogs); err != nil {
@@ -29,7 +29,7 @@ func (db *EriboStore) dropSchema() error {
 	if _, err := db.Exec(`DROP TABLE feedback`); err != nil {
 		return err
 	}
-	if _, err := db.Exec(`DROP TABLE log`); err != nil {
+	if _, err := db.Exec(`DROP TABLE cmd_logs`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`DROP TABLE loth_logs`); err != nil {
@@ -67,8 +67,8 @@ CREATE TABLE IF NOT EXISTS feedback (
 	created TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
 	PRIMARY KEY (id)
 )`
-	tableLog = `
-CREATE TABLE IF NOT EXISTS log (
+	tableCmdLogs = `
+CREATE TABLE IF NOT EXISTS cmd_logs (
 	id SERIAL,
 	command VARCHAR(255) NOT NULL,
 	player VARCHAR(255) NOT NULL,
