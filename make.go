@@ -111,7 +111,8 @@ func forEachBinary(bin binary, fn binaryFunc) {
 
 func buildBinary(bin binary, OS, arch string) {
 	ldflags := fmt.Sprintf("--ldflags=-s -w -X main.theVersion=%s", bin.version)
-	cmd := exec.Command("go", "build", ldflags, "-o", bin.Name(OS, arch), commandLocation)
+	tags := fmt.Sprint("--tags=prod")
+	cmd := exec.Command("go", "build", tags, ldflags, "-o", bin.Name(OS, arch), commandLocation)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

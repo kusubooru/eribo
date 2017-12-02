@@ -13,7 +13,7 @@ type Loth struct {
 }
 
 func NewLoth(p *Player, duration time.Duration) *Loth {
-	exp := time.Now().Add(duration).UTC().Truncate(time.Microsecond)
+	exp := time.Now().Add(duration).UTC().Truncate(1 * time.Second)
 	return &Loth{Player: p, Expires: exp}
 }
 

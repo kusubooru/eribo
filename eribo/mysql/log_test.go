@@ -15,7 +15,7 @@ func TestCmdLog(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
-	created := time.Now().UTC().Truncate(1 * time.Microsecond)
+	created := time.Now().UTC().Truncate(timeTruncate)
 	l := &eribo.CmdLog{
 		Command: eribo.CmdTomato,
 		Player:  "foo",
@@ -44,9 +44,9 @@ func TestGetRecentLogs(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
-	created1 := time.Now().UTC().Add(1 * time.Second).Truncate(1 * time.Microsecond)
-	created2 := time.Now().UTC().Add(2 * time.Second).Truncate(1 * time.Microsecond)
-	created3 := time.Now().UTC().Add(3 * time.Second).Truncate(1 * time.Microsecond)
+	created1 := time.Now().UTC().Add(1 * time.Second).Truncate(timeTruncate)
+	created2 := time.Now().UTC().Add(2 * time.Second).Truncate(timeTruncate)
+	created3 := time.Now().UTC().Add(3 * time.Second).Truncate(timeTruncate)
 
 	logs := []*eribo.CmdLog{
 		{Command: eribo.CmdTomato, Player: "foo", Created: created1},
@@ -87,9 +87,9 @@ func TestGetRecentLothLogs(t *testing.T) {
 	isNew := true
 	targets := []*eribo.Player{{Name: "bar"}, {Name: "baz"}}
 	expires := loth.Expires
-	created1 := time.Now().UTC().Add(1 * time.Second).Truncate(1 * time.Microsecond)
-	created2 := time.Now().UTC().Add(2 * time.Second).Truncate(1 * time.Microsecond)
-	created3 := time.Now().UTC().Add(3 * time.Second).Truncate(1 * time.Microsecond)
+	created1 := time.Now().UTC().Add(1 * time.Second).Truncate(timeTruncate)
+	created2 := time.Now().UTC().Add(2 * time.Second).Truncate(timeTruncate)
+	created3 := time.Now().UTC().Add(3 * time.Second).Truncate(timeTruncate)
 
 	logs := []*eribo.LothLog{
 		{Issuer: issuer, Channel: channel, Loth: loth, IsNew: isNew, Targets: targets, Created: created1},
@@ -139,9 +139,9 @@ func TestLogLoth_unableToFindEligibleTarget(t *testing.T) {
 	channel := "2ch"
 	isNew := false
 	targets := []*eribo.Player{{Name: "bar"}, {Name: "baz"}}
-	created1 := time.Now().UTC().Add(1 * time.Second).Truncate(1 * time.Microsecond)
-	created2 := time.Now().UTC().Add(2 * time.Second).Truncate(1 * time.Microsecond)
-	created3 := time.Now().UTC().Add(3 * time.Second).Truncate(1 * time.Microsecond)
+	created1 := time.Now().UTC().Add(1 * time.Second).Truncate(timeTruncate)
+	created2 := time.Now().UTC().Add(2 * time.Second).Truncate(timeTruncate)
+	created3 := time.Now().UTC().Add(3 * time.Second).Truncate(timeTruncate)
 
 	logs := []*eribo.LothLog{
 		{Issuer: issuer, Channel: channel, IsNew: isNew, Targets: targets, Created: created1},

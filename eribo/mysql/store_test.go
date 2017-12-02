@@ -14,7 +14,7 @@ func TestAddMessageWithURLs(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
-	created := time.Now().UTC().Add(time.Second).Truncate(1 * time.Microsecond)
+	created := time.Now().UTC().Add(time.Second).Truncate(timeTruncate)
 	m := &eribo.Message{
 		Channel: "foo",
 		Player:  "bar",
@@ -55,7 +55,7 @@ func TestAddFeedback(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
-	created := time.Now().UTC().Add(1 * time.Second).Truncate(1 * time.Microsecond)
+	created := time.Now().UTC().Add(1 * time.Second).Truncate(timeTruncate)
 	f := &eribo.Feedback{
 		Player:  "foo",
 		Message: "bar",
@@ -89,9 +89,9 @@ func TestGetRecentFeedback(t *testing.T) {
 	s := setup(t)
 	defer teardown(t, s)
 
-	created1 := time.Now().UTC().Add(1 * time.Second).Truncate(1 * time.Microsecond)
-	created2 := time.Now().UTC().Add(2 * time.Second).Truncate(1 * time.Microsecond)
-	created3 := time.Now().UTC().Add(3 * time.Second).Truncate(1 * time.Microsecond)
+	created1 := time.Now().UTC().Add(1 * time.Second).Truncate(timeTruncate)
+	created2 := time.Now().UTC().Add(2 * time.Second).Truncate(timeTruncate)
+	created3 := time.Now().UTC().Add(3 * time.Second).Truncate(timeTruncate)
 
 	fb := []*eribo.Feedback{
 		{Player: "foo", Message: "bar", Created: created1},

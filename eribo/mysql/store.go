@@ -7,9 +7,11 @@ import (
 	"github.com/kusubooru/eribo/eribo"
 )
 
+const timeTruncate = 1 * time.Second
+
 func (db *EriboStore) AddMessageWithURLs(m *eribo.Message, urls []string) (err error) {
 	if (m.Created == time.Time{}) {
-		m.Created = time.Now().UTC().Truncate(1 * time.Microsecond)
+		m.Created = time.Now().UTC().Truncate(timeTruncate)
 	}
 	tx, err := db.Beginx()
 	if err != nil {
@@ -83,7 +85,7 @@ func (db *EriboStore) GetRecentFeedback(limit, offset int) ([]*eribo.Feedback, e
 
 func (db *EriboStore) AddFeedback(f *eribo.Feedback) error {
 	if (f.Created == time.Time{}) {
-		f.Created = time.Now().UTC().Truncate(1 * time.Microsecond)
+		f.Created = time.Now().UTC().Truncate(timeTruncate)
 	}
 	const query = `INSERT INTO feedback(message, player, created) VALUES (?, ?, ?)`
 	_, err := db.Exec(query, f.Message, f.Player, f.Created)
