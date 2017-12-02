@@ -762,7 +762,6 @@ func GetCharacterData(name, account, ticket string) (*CharacterData, error) {
 	}
 	defer resp.Body.Close()
 	r := bytes.NewReader(b)
-	//resp.Body = data
 
 	d := new(CharacterData)
 	if err := json.NewDecoder(r).Decode(d); err != nil {
@@ -774,7 +773,11 @@ func GetCharacterData(name, account, ticket string) (*CharacterData, error) {
 type ErrorResponse struct {
 	Message string
 	Cause   error
-	Body    []byte
+	body    []byte
+}
+
+func (e ErrorResponse) Body() []byte {
+	return e.body
 }
 
 func (e ErrorResponse) Error() string {

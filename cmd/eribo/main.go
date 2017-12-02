@@ -398,13 +398,13 @@ func handleMessages(
 					// The JSON endpoint returns HTML with 405 error when lots
 					// of requests are done concurrently.
 
-					//go func(name string, p *eribo.Player, playerMap *eribo.PlayerMap, mappingList *flist.MappingList) {
+					// go func(name, account, ticket string, p *eribo.Player, playerMap *eribo.PlayerMap, mappingList *flist.MappingList) {
 					charData, err := flist.GetCharacterData(name, account, ticket)
 					if err != nil {
 						log.Printf("init channel could not get character data for %q: %v", name, err)
-						if errResp, ok := err.(flist.ErrorResponse); ok {
+						if carrier, ok := err.(BodyCarrier); ok {
 							log.Printf("-- %s character data begin --\n", name)
-							log.Printf("%s\n", string(errResp.Body))
+							log.Printf("%s\n", string(carrier.Body()))
 							log.Printf("-- %s character data end --\n", name)
 						}
 						return
@@ -413,7 +413,7 @@ func handleMessages(
 					if role, ok := m["Dom/Sub Role"]; ok {
 						playerMap.SetPlayerRole(p.Name, flist.Role(role))
 					}
-					//}(name, p, playerMap, mappingList)
+					// }(name, account, ticket, p, playerMap, mappingList)
 				})
 			}
 		case sta := <-stach:
@@ -454,6 +454,10 @@ func handleMessages(
 			log.Println("received IDN but shouldn't:", idn)
 		}
 	}
+}
+
+type BodyCarrier interface {
+	Body() []byte
 }
 
 func getCharDataAndSetRole(name, account, password string, playerMap *eribo.PlayerMap, mappingList *flist.MappingList) error {
