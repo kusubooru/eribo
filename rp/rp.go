@@ -207,15 +207,15 @@ func RandFeedback(name string) string {
 }
 
 var feedback = []string{
-	`/me bows politely, "Thank you for the feedback %s-sama".`,
-	`/me bows graciously, "Your feedback is highly appreciated %s-sama".`,
-	`/me nods affirmatively, "Understood %s-sama. Your feedback has been recorded".`,
+	`/me bows politely, "Thank you for the feedback %s".`,
+	`/me bows graciously, "Your feedback is highly appreciated %s".`,
+	`/me nods affirmatively, "Understood %s. Your feedback has been recorded".`,
 }
 
 func Tomato(name, owner string) string {
 	if name == owner {
 		var s = `/me humbly offers a juicy and fresh-looking tomato to %s, "A
-		pleasure to serve you Dragon-sama".`
+		pleasure to serve you Ryuunosuke-sama".`
 		return fmt.Sprintf(clean(s), name)
 	}
 	return fmt.Sprintf("/me gives a fresh-looking tomato to %s.", name)
