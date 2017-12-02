@@ -30,6 +30,5 @@ func TestTable_Roll(t *testing.T) {
 		if got > want {
 			t.Errorf("%d: Rolls: %d, Drops: %d, Pr: %f, Expected Pr: %f, Current delta: %f, wanted delta: %f", i, rolls, m[i], pr, expectedPr, got, want)
 		}
-		//fmt.Printf("%s = %d, %f%%\n", d.Name, m[i], float64(m[i])*float64(100)/float64(rolls))
 	}
 }

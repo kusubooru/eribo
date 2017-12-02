@@ -20,6 +20,7 @@ import (
 	"github.com/kusubooru/eribo/eribo"
 	"github.com/kusubooru/eribo/eribo/mysql"
 	"github.com/kusubooru/eribo/flist"
+	"github.com/kusubooru/eribo/loot"
 	"github.com/kusubooru/eribo/rp"
 )
 
@@ -514,6 +515,16 @@ func atoiLimitOffset(args []string) (int, int) {
 	return limit, offset
 }
 
+func atoiFirstArg(args []string, def int) int {
+	n := def
+	if len(args) > 0 {
+		if i, err := strconv.Atoi(args[0]); err == nil {
+			n = i
+		}
+	}
+	return n
+}
+
 func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channelMap *eribo.ChannelMap, botName, botVersion, owner string) {
 	if pri.Character != owner {
 		return
@@ -524,6 +535,19 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 	switch cmd {
 	case "!version":
 		msg = botVersion
+	case "!simtools":
+		rolls := atoiFirstArg(args, 100)
+		table := &loot.Table{}
+		for _, t := range rp.Tktools() {
+			table.Add(t, t.Weight)
+		}
+		drops, pr := table.Sim(rolls)
+		var buf bytes.Buffer
+		buf.WriteString("\n")
+		for i, t := range rp.Tktools() {
+			buf.WriteString(fmt.Sprintf("%s = %d, %.1f%%\n", t.Name, drops[i], pr[i]*100.0))
+		}
+		msg = buf.String()
 	case "!channelmap":
 		var buf bytes.Buffer
 		buf.WriteString("\n")

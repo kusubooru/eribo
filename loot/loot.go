@@ -3,6 +3,7 @@ package loot
 import (
 	"math/rand"
 	"sync"
+	"time"
 )
 
 type Drop struct {
@@ -41,6 +42,13 @@ func (t Table) TotalWeight() int {
 	return totalWeight
 }
 
+func (t Table) Len() int {
+	if t.drops == nil {
+		return 0
+	}
+	return len(t.drops)
+}
+
 func (t Table) Roll(seed int64) (int, interface{}) {
 	t.RLock()
 	defer t.RUnlock()
@@ -59,4 +67,21 @@ func (t Table) Roll(seed int64) (int, interface{}) {
 		}
 	}
 	return drop, t.drops[drop].Item
+}
+
+func (t Table) Sim(rolls int) (map[int]int, map[int]float64) {
+	t.RLock()
+	defer t.RUnlock()
+	dropsMap := make(map[int]int, t.Len())
+	for k := 0; k < rolls; k++ {
+		seed := time.Now().UnixNano()
+		i, _ := t.Roll(seed)
+		dropsMap[i]++
+	}
+
+	prMap := make(map[int]float64, t.Len())
+	for i := range t.drops {
+		prMap[i] = float64(dropsMap[i]) / float64(rolls)
+	}
+	return dropsMap, prMap
 }
