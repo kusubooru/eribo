@@ -756,11 +756,29 @@ func GetCharacterData(name, account, ticket string) (*CharacterData, error) {
 		return nil, fmt.Errorf("post character data failed: %v", err)
 	}
 
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("could not read response body: %v", err)
+	}
+	defer resp.Body.Close()
+	r := bytes.NewReader(b)
+	//resp.Body = data
+
 	d := new(CharacterData)
-	if err := json.NewDecoder(resp.Body).Decode(d); err != nil {
-		return nil, fmt.Errorf("could not decode character data: %v", err)
+	if err := json.NewDecoder(r).Decode(d); err != nil {
+		return nil, ErrorResponse{"could not decode character data", err, b}
 	}
 	return d, nil
+}
+
+type ErrorResponse struct {
+	Message string
+	Cause   error
+	Body    []byte
+}
+
+func (e ErrorResponse) Error() string {
+	return fmt.Sprintf("%s: %v", e.Message, e.Cause)
 }
 
 type MappingList struct {

@@ -395,17 +395,25 @@ func handleMessages(
 				}
 				actives := channelMap.GetActivePlayers()
 				actives.ForEach(func(name string, p *eribo.Player) {
-					go func(name string, p *eribo.Player, playerMap *eribo.PlayerMap, mappingList *flist.MappingList) {
-						charData, err := flist.GetCharacterData(name, account, ticket)
-						if err != nil {
-							log.Printf("init channel could not get character data for %q: %v", name, err)
-							return
+					// The JSON endpoint returns HTML with 405 error when lots
+					// of requests are done concurrently.
+
+					//go func(name string, p *eribo.Player, playerMap *eribo.PlayerMap, mappingList *flist.MappingList) {
+					charData, err := flist.GetCharacterData(name, account, ticket)
+					if err != nil {
+						log.Printf("init channel could not get character data for %q: %v", name, err)
+						if errResp, ok := err.(flist.ErrorResponse); ok {
+							log.Printf("-- %s character data begin --\n", name)
+							log.Printf("%s\n", string(errResp.Body))
+							log.Printf("-- %s character data end --\n", name)
 						}
-						m := charData.HumanInfotags(mappingList)
-						if role, ok := m["Dom/Sub Role"]; ok {
-							playerMap.SetPlayerRole(p.Name, flist.Role(role))
-						}
-					}(name, p, playerMap, mappingList)
+						return
+					}
+					m := charData.HumanInfotags(mappingList)
+					if role, ok := m["Dom/Sub Role"]; ok {
+						playerMap.SetPlayerRole(p.Name, flist.Role(role))
+					}
+					//}(name, p, playerMap, mappingList)
 				})
 			}
 		case sta := <-stach:
