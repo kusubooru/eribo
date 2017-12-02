@@ -336,7 +336,7 @@ func handleMessages(
 			log.Println("waiting for reader to quit...")
 			select {
 			case <-quit:
-			case <-time.After(10 * time.Second):
+			case <-time.After(5 * time.Second):
 				log.Println("reader took too long")
 			}
 			log.Println("exiting...")
