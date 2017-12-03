@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -69,7 +70,7 @@ func main() {
 	)
 	flag.Parse()
 
-	botVersion := fmt.Sprintf("%s %s (runtime: %s)", os.Args[0], theVersion, runtime.Version())
+	botVersion := fmt.Sprintf("%s %s (runtime: %s)", filepath.Base(os.Args[0]), theVersion, runtime.Version())
 	versionArg = len(os.Args) > 1 && os.Args[1] == "version"
 	if *showVersion || versionArg {
 		fmt.Println(botVersion)
