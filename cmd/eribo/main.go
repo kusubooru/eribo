@@ -414,6 +414,7 @@ func handleMessages(
 					if role, ok := m["Dom/Sub Role"]; ok {
 						playerMap.SetPlayerRole(p.Name, flist.Role(role))
 					}
+					playerMap.SetPlayerFave(name, charFavesTickling(charData, mappingList))
 					// }(name, account, ticket, p, playerMap, mappingList)
 				})
 			}
@@ -475,7 +476,15 @@ func getCharDataAndSetRole(name, account, password string, playerMap *eribo.Play
 	if role, ok := m["Dom/Sub Role"]; ok {
 		playerMap.SetPlayerRole(name, flist.Role(role))
 	}
+	playerMap.SetPlayerFave(name, charFavesTickling(charData, mappingList))
 	return nil
+}
+
+func charFavesTickling(char *flist.CharacterData, ml *flist.MappingList) bool {
+	if char.HasFaveKink(ml.KinksMap(), "Tickling") || char.HasFaveCustomKink("tickling", "tickle") {
+		return true
+	}
+	return false
 }
 
 func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo.ChannelMap, botName, owner string) {

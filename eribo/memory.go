@@ -13,10 +13,11 @@ type Player struct {
 	Name   string
 	Role   flist.Role
 	Status flist.Status
+	Fave   bool
 }
 
 func (p Player) String() string {
-	return fmt.Sprintf("Name: %q, Status: %q, Role: %q", p.Name, p.Status, p.Role)
+	return fmt.Sprintf("Name: %q, Status: %q, Role: %q, Fave: %v", p.Name, p.Status, p.Role, p.Fave)
 }
 
 type PlayerMap struct {
@@ -48,6 +49,14 @@ func (c *PlayerMap) SetPlayerStatus(playerName string, status flist.Status) {
 	defer c.Unlock()
 	if p, ok := c.m[playerName]; ok {
 		p.Status = status
+	}
+}
+
+func (c *PlayerMap) SetPlayerFave(playerName string, fave bool) {
+	c.Lock()
+	defer c.Unlock()
+	if p, ok := c.m[playerName]; ok {
+		p.Fave = fave
 	}
 }
 
@@ -184,6 +193,9 @@ func (c *ChannelMap) ChooseLoth(playerName, channel, botName string, d time.Dura
 		c.RLock()
 		defer c.RUnlock()
 		if p.Role == flist.RoleFullDom || p.Role == "" {
+			return
+		}
+		if !p.Fave {
 			return
 		}
 		if p.Name == botName {

@@ -700,15 +700,17 @@ func GetTicket(account, password string) (string, error) {
 }
 
 type CharacterData struct {
-	ID           int64    `json:"id"`
-	Name         string   `json:"name"`
-	Description  string   `json:"description"`
-	Views        int      `json:"views"`
-	CustomsFirst bool     `json:"customs_first"`
-	CustomTitle  string   `json:"custom_title"`
-	CreatedAt    int64    `json:"created_at"`
-	UpdatedAt    int64    `json:"updated_at"`
-	Infotags     Infotags `json:"infotags"`
+	ID           int64       `json:"id"`
+	Name         string      `json:"name"`
+	Description  string      `json:"description"`
+	Views        int         `json:"views"`
+	CustomsFirst bool        `json:"customs_first"`
+	CustomTitle  string      `json:"custom_title"`
+	CreatedAt    int64       `json:"created_at"`
+	UpdatedAt    int64       `json:"updated_at"`
+	Infotags     Infotags    `json:"infotags"`
+	Kinks        Kinks       `json:"kinks"`
+	CustomKinks  CustomKinks `json:"custom_kinks"`
 }
 
 func (d CharacterData) HumanInfotags(ml *MappingList) map[string]string {
@@ -721,8 +723,91 @@ func (d CharacterData) HumanInfotags(ml *MappingList) map[string]string {
 	return m
 }
 
+func (d CharacterData) HumanKinks(kinks map[string]string) map[string]string {
+	m := make(map[string]string)
+	for k, v := range d.Kinks {
+		m[kinks[k]] = v
+	}
+	return m
+}
+
+func (d CharacterData) HasFaveKink(kinksMap map[string]string, kink string) bool {
+	if d.HumanKinks(kinksMap)[kink] == "fave" {
+		return true
+	}
+	return false
+}
+
+func (d CharacterData) HasFaveCustomKink(kinks ...string) bool {
+	ckinks := []*CustomKink(d.CustomKinks)
+	for _, ck := range ckinks {
+		if ck.Choice == "fave" {
+			name := strings.ToLower(ck.Name)
+			for _, k := range kinks {
+				if strings.Contains(name, k) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+type CustomKinks []*CustomKink
+type CustomKink struct {
+	ID          string
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Choice      string `json:"choice"`
+}
+
+func (kn CustomKinks) MarshalJSON() ([]byte, error) { return json.Marshal(kn) }
+func (kn *CustomKinks) UnmarshalJSON(data []byte) error {
+	customKinks := make([]*CustomKink, 0)
+	*kn = customKinks
+	if bytes.HasPrefix(data, []byte("{")) {
+		m := new(map[string]json.RawMessage)
+		if err := json.Unmarshal(data, m); err != nil {
+			return err
+		}
+
+		kinks := make([]*CustomKink, 0)
+		for k, v := range *m {
+			kink := new(CustomKink)
+			if err := json.Unmarshal(v, kink); err != nil {
+				return err
+			}
+			kink.ID = k
+			kinks = append(kinks, kink)
+		}
+		sort.Slice(kinks, func(i, j int) bool { return kinks[i].ID < kinks[j].ID })
+		*kn = kinks
+		return nil
+	}
+	return nil
+}
+
+type Kinks map[string]string
+
+func (kn Kinks) MarshalJSON() ([]byte, error) { return json.Marshal(kn) }
+func (kn *Kinks) UnmarshalJSON(data []byte) error {
+	if bytes.HasPrefix(data, []byte("{")) {
+		m := new(map[string]string)
+		if err := json.Unmarshal(data, m); err != nil {
+			return err
+		}
+		*kn = make(map[string]string)
+		for k, v := range *m {
+			(*kn)[k] = v
+		}
+		return nil
+	}
+	return nil
+}
+
 type Infotags map[string]string
 
+func (it Infotags) MarshalJSON() ([]byte, error) { return json.Marshal(it) }
 func (it *Infotags) UnmarshalJSON(data []byte) error {
 	if bytes.HasPrefix(data, []byte("{")) {
 		m := new(map[string]string)
@@ -736,10 +821,6 @@ func (it *Infotags) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	return nil
-}
-
-func (it Infotags) MarshalJSON() ([]byte, error) {
-	return json.Marshal(it)
 }
 
 func GetCharacterData(name, account, ticket string) (*CharacterData, error) {
@@ -812,6 +893,14 @@ type MappingList struct {
 		Value string `json:"value"`
 	} `json:"listitems"`
 	Error string `json:"error"`
+}
+
+func (ml MappingList) KinksMap() map[string]string {
+	m := make(map[string]string)
+	for _, kn := range ml.Kinks {
+		m[kn.ID] = kn.Name
+	}
+	return m
 }
 
 func (ml MappingList) InfotagsMap() map[string]string {
