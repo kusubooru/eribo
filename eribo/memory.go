@@ -83,14 +83,16 @@ func (c *PlayerMap) ForEach(fn func(name string, p *Player)) {
 
 type ChannelMap struct {
 	sync.RWMutex
-	m     map[string]*PlayerMap
-	lothm map[string]*Loth
+	m         map[string]*PlayerMap
+	lothm     map[string]*Loth
+	lastLothm map[string]*Loth
 }
 
 func NewChannelMap() *ChannelMap {
 	m := make(map[string]*PlayerMap)
 	lothm := make(map[string]*Loth)
-	return &ChannelMap{m: m, lothm: lothm}
+	lastLothm := make(map[string]*Loth)
+	return &ChannelMap{m: m, lothm: lothm, lastLothm: lastLothm}
 }
 
 func (c *ChannelMap) ForEach(fn func(channel string, pm *PlayerMap)) {
@@ -182,8 +184,11 @@ func (c ChannelMap) GetActivePlayers() *PlayerMap {
 	return actives
 }
 
-func (c *ChannelMap) ChooseLoth(playerName, channel, botName string, d time.Duration) (*Loth, bool, []*Player) {
+func (c *ChannelMap) ChooseLoth(playerName, channel, botName string, d time.Duration, lowNames []string) (*Loth, bool, []*Player) {
+	c.RLock()
 	loth := c.lothm[channel]
+	lastLoth := c.lastLothm[channel]
+	c.RUnlock()
 	targets := make([]*Player, 0)
 	if loth != nil && !loth.Expired() {
 		return loth, false, targets
@@ -201,22 +206,28 @@ func (c *ChannelMap) ChooseLoth(playerName, channel, botName string, d time.Dura
 		if p.Name == botName {
 			return
 		}
+		// Avoid choosing the same loth two times in a row.
+		if lastLoth != nil && p.Name == lastLoth.Name {
+			return
+		}
 		targets = append(targets, p)
 	})
 	if len(targets) == 0 {
 		return nil, false, targets
 	}
-	target := randTarget(playerName, targets)
+	target := randTarget(playerName, targets, lowNames)
 	if target == nil {
 		return nil, false, targets
 	}
 	c.Lock()
 	defer c.Unlock()
-	c.lothm[channel] = NewLoth(target, d)
+	newLoth := NewLoth(target, d)
+	c.lothm[channel] = newLoth
+	c.lastLothm[channel] = newLoth
 	return c.lothm[channel], true, targets
 }
 
-func randTarget(playerName string, targets []*Player) *Player {
+func randTarget(playerName string, targets []*Player, lowNames []string) *Player {
 	t := &loot.Table{}
 	for _, p := range targets {
 		var weight int
@@ -230,8 +241,23 @@ func randTarget(playerName string, targets []*Player) *Player {
 		case flist.RoleFullSub:
 			weight = 50
 		}
+		// Give sub players a slightly higher chance for malfunction.
 		if p.Name == playerName {
-			weight = 5
+			switch p.Role {
+			case flist.RoleSomeSub:
+				weight = 8
+			case flist.RoleFullSub:
+				weight = 10
+			default:
+				weight = 5
+			}
+		}
+		// Give list of players who do not enjoy loth, a much lower chance to
+		// be chosen.
+		for _, name := range lowNames {
+			if p.Name == name {
+				weight = 3
+			}
 		}
 		t.Add(p, weight)
 	}

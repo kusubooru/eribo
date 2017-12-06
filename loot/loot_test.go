@@ -1,6 +1,7 @@
 package loot
 
 import (
+	"fmt"
 	"math"
 	"testing"
 	"time"
@@ -30,5 +31,28 @@ func TestTable_Roll(t *testing.T) {
 		if got > want {
 			t.Errorf("%d: Rolls: %d, Drops: %d, Pr: %f, Expected Pr: %f, Current delta: %f, wanted delta: %f", i, rolls, m[i], pr, expectedPr, got, want)
 		}
+	}
+}
+
+func TestQualityDrops(t *testing.T) {
+	t.Skip("not really a test")
+
+	d := []Drop{
+		{Item: "poor", Weight: 8},
+		{Item: "common", Weight: 40},
+		{Item: "uncommon", Weight: 4},
+	}
+	table := NewTable(d)
+	m := make(map[int]int, len(d))
+	rolls := 1000
+	for k := 0; k < rolls; k++ {
+		seed := time.Now().UnixNano()
+		i, _ := table.Roll(seed)
+		m[i]++
+	}
+
+	drops, pr := table.Sim(rolls)
+	for i := range drops {
+		fmt.Printf("%s = %d, %.1f%%\n", d[i].Item, drops[i], pr[i]*100.0)
 	}
 }

@@ -44,11 +44,18 @@ func defaultAddr(addr string, testServer, insecure bool) string {
 
 func splitRoomTitles(s string) ([]string, error) {
 	var rooms []string
-	err := json.Unmarshal([]byte(s), &rooms)
-	if err != nil {
+	if err := json.Unmarshal([]byte(s), &rooms); err != nil {
 		return nil, err
 	}
 	return rooms, nil
+}
+
+type lowLothNames []string
+
+func (names lowLothNames) String() string { return fmt.Sprintf("%q", []string(names)) }
+func (names *lowLothNames) Set(value string) error {
+	*names = append(*names, value)
+	return nil
 }
 
 var theVersion = "devel"
@@ -66,8 +73,10 @@ func main() {
 		joinRooms   = flag.String("join", "", "open private `rooms` to join in JSON format e.g. "+`-join '["Room 1", "Room 2"]'`)
 		statusMsg   = flag.String("status", "", "status message to be displayed")
 		showVersion = flag.Bool("v", false, "print program version")
+		lowNames    lowLothNames
 		versionArg  bool
 	)
+	flag.Var(&lowNames, "lowname", "`name` of player for lower loth chance e.g. -lowname 'Name 1' -lowname 'Name 2'")
 	flag.Parse()
 
 	botVersion := fmt.Sprintf("%s %s (runtime: %s)", filepath.Base(os.Args[0]), theVersion, runtime.Version())
@@ -185,6 +194,7 @@ func main() {
 		*character,
 		botVersion,
 		*owner,
+		lowNames,
 		mappingList,
 		store,
 		playerMap,
@@ -306,6 +316,7 @@ func handleMessages(
 	botName string,
 	botVersion string,
 	owner string,
+	lowNames []string,
 	mappingList *flist.MappingList,
 	store eribo.Store,
 	playerMap *eribo.PlayerMap,
@@ -356,7 +367,7 @@ func handleMessages(
 					log.Println("error storing message:", err)
 				}
 			}
-			respond(c, store, msg, channelMap, botName, owner)
+			respond(c, store, msg, channelMap, botName, owner, lowNames)
 		case pri := <-prich:
 			if err := gatherFeedback(c, store, pri); err != nil {
 				log.Println("gather feedback err:", err)
@@ -487,7 +498,15 @@ func charFavesTickling(char *flist.CharacterData, ml *flist.MappingList) bool {
 	return false
 }
 
-func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo.ChannelMap, botName, owner string) {
+func respond(
+	c *flist.Client,
+	store eribo.Store,
+	m *flist.MSG,
+	channelMap *eribo.ChannelMap,
+	botName string,
+	owner string,
+	lowNames []string,
+) {
 	var msg string
 	cmd := eribo.ParseCommand(m.Message)
 	switch cmd {
@@ -502,7 +521,7 @@ func respond(c *flist.Client, store eribo.Store, m *flist.MSG, channelMap *eribo
 	case eribo.CmdJojo:
 		msg = rp.RandJojo(m.Character)
 	case eribo.CmdLoth:
-		loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour)
+		loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour, lowNames)
 		lothLog := &eribo.LothLog{Issuer: m.Character, Channel: m.Channel, Loth: loth, IsNew: isNew, Targets: targets}
 		if err := store.AddLothLog(lothLog); err != nil {
 			log.Printf("error logging Loth: %v, isNew: %v, Targets: %v: %v", loth, isNew, targets, err)
