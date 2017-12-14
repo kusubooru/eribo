@@ -18,6 +18,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.com/kusubooru/eribo/dadjoke"
 	"github.com/kusubooru/eribo/eribo"
 	"github.com/kusubooru/eribo/eribo/mysql"
 	"github.com/kusubooru/eribo/flist"
@@ -520,6 +521,13 @@ func respond(
 		msg = rp.RandVonprove(m.Character)
 	case eribo.CmdJojo:
 		msg = rp.RandJojo(m.Character)
+	case eribo.CmdDadJoke:
+		j, err := dadjoke.Random()
+		if err != nil {
+			log.Printf("error getting dadjoke: %v", err)
+			return
+		}
+		msg = j.Joke
 	case eribo.CmdLoth:
 		loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour, lowNames)
 		lothLog := &eribo.LothLog{Issuer: m.Character, Channel: m.Channel, Loth: loth, IsNew: isNew, Targets: targets}

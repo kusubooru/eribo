@@ -17,6 +17,7 @@ const (
 	CmdVonprove
 	CmdJojo
 	CmdLoth
+	CmdDadJoke
 )
 
 func (c Command) String() string {
@@ -37,6 +38,8 @@ func (c Command) String() string {
 		return "!jojo"
 	case CmdLoth:
 		return "!loth"
+	case CmdDadJoke:
+		return "!dadjoke"
 	}
 }
 
@@ -58,6 +61,8 @@ func makeCommand(s string) Command {
 		return CmdJojo
 	case "!loth":
 		return CmdLoth
+	case "!dadjoke":
+		return CmdDadJoke
 	}
 }
 
