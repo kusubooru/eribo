@@ -402,34 +402,36 @@ func handleMessages(
 				log.Printf("init channel get ticket error: %v", err)
 				return
 			}
-			for _, u := range ich.Users {
-				if p, ok := playerMap.GetPlayer(u.Identity); ok {
-					channelMap.SetPlayer(ich.Channel, p)
-				}
-				actives := channelMap.GetActivePlayers()
-				actives.ForEach(func(name string, p *eribo.Player) {
-					// The JSON endpoint returns HTML with 405 error when lots
-					// of requests are done concurrently.
+			go func(ticket string) {
+				for _, u := range ich.Users {
+					if p, ok := playerMap.GetPlayer(u.Identity); ok {
+						channelMap.SetPlayer(ich.Channel, p)
+					}
+					actives := channelMap.GetActivePlayers()
+					actives.ForEach(func(name string, p *eribo.Player) {
+						// The JSON endpoint returns HTML with 405 error when lots
+						// of requests are done concurrently.
 
-					// go func(name, account, ticket string, p *eribo.Player, playerMap *eribo.PlayerMap, mappingList *flist.MappingList) {
-					charData, err := flist.GetCharacterData(name, account, ticket)
-					if err != nil {
-						log.Printf("init channel could not get character data for %q: %v", name, err)
-						if carrier, ok := err.(BodyCarrier); ok {
-							log.Printf("-- %s character data begin --\n", name)
-							log.Printf("%s\n", string(carrier.Body()))
-							log.Printf("-- %s character data end --\n", name)
+						// go func(name, account, ticket string, p *eribo.Player, playerMap *eribo.PlayerMap, mappingList *flist.MappingList) {
+						charData, err := flist.GetCharacterData(name, account, ticket)
+						if err != nil {
+							log.Printf("init channel could not get character data for %q: %v", name, err)
+							if carrier, ok := err.(BodyCarrier); ok {
+								log.Printf("-- %s character data begin --\n", name)
+								log.Printf("%s\n", string(carrier.Body()))
+								log.Printf("-- %s character data end --\n", name)
+							}
+							return
 						}
-						return
-					}
-					m := charData.HumanInfotags(mappingList)
-					if role, ok := m["Dom/Sub Role"]; ok {
-						playerMap.SetPlayerRole(p.Name, flist.Role(role))
-					}
-					playerMap.SetPlayerFave(name, charFavesTickling(charData, mappingList))
-					// }(name, account, ticket, p, playerMap, mappingList)
-				})
-			}
+						m := charData.HumanInfotags(mappingList)
+						if role, ok := m["Dom/Sub Role"]; ok {
+							playerMap.SetPlayerRole(p.Name, flist.Role(role))
+						}
+						playerMap.SetPlayerFave(name, charFavesTickling(charData, mappingList))
+						// }(name, account, ticket, p, playerMap, mappingList)
+					})
+				}
+			}(ticket)
 		case sta := <-stach:
 			name := sta.Character
 			newStatus := flist.Status(sta.Status)
