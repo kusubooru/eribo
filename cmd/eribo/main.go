@@ -540,9 +540,11 @@ func respond(
 	}
 	if msg != "" {
 		e := &eribo.CmdLog{Command: cmd, Player: m.Character, Channel: m.Channel}
-		if err := store.AddCmdLog(e); err != nil {
-			log.Printf("error logging %v: %v", cmd, err)
-		}
+		go func(e *eribo.CmdLog) {
+			if err := store.AddCmdLog(e); err != nil {
+				log.Printf("error logging %v: %v", cmd, err)
+			}
+		}(e)
 
 		resp := &flist.MSG{Channel: m.Channel, Message: msg}
 		if err := c.SendMSG(resp); err != nil {
