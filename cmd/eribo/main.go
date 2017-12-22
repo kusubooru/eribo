@@ -134,6 +134,7 @@ func main() {
 	stach := make(chan *flist.STA)
 	jchch := make(chan *flist.JCH)
 	lchch := make(chan *flist.LCH)
+	ciuch := make(chan *flist.CIU, 10)
 	quit := make(chan struct{})
 
 	// The reader is responsible for closing the channels.
@@ -152,6 +153,7 @@ func main() {
 		stach,
 		jchch,
 		lchch,
+		ciuch,
 		quit,
 	)
 
@@ -214,6 +216,7 @@ func main() {
 		stach,
 		jchch,
 		lchch,
+		ciuch,
 		quit,
 	)
 }
@@ -236,6 +239,7 @@ func readMessages(
 	stach chan<- *flist.STA,
 	jchch chan<- *flist.JCH,
 	lchch chan<- *flist.LCH,
+	ciuch chan<- *flist.CIU,
 	quit chan struct{},
 ) {
 	defer close(idnch)
@@ -251,6 +255,7 @@ func readMessages(
 	defer close(stach)
 	defer close(jchch)
 	defer close(lchch)
+	defer close(ciuch)
 	defer close(quit)
 	for {
 		message, err := c.ReadMessage()
@@ -293,6 +298,8 @@ func readMessages(
 			jchch <- t
 		case *flist.LCH:
 			lchch <- t
+		case *flist.CIU:
+			ciuch <- t
 		case *flist.VAR:
 			switch t.Variable {
 			case "chat_max":
@@ -336,6 +343,7 @@ func handleMessages(
 	stach <-chan *flist.STA,
 	jchch <-chan *flist.JCH,
 	lchch <-chan *flist.LCH,
+	ciuch <-chan *flist.CIU,
 	quit <-chan struct{},
 ) {
 	interrupt := make(chan os.Signal, 1)
@@ -459,6 +467,11 @@ func handleMessages(
 			channelMap.SetPlayer(jch.Channel, player)
 		case lch := <-lchch:
 			channelMap.DelPlayer(lch.Channel, lch.Character)
+		case ciu := <-ciuch:
+			jch := &flist.JCH{Channel: ciu.Name}
+			if err := c.SendJCH(jch); err != nil {
+				log.Println("CIU error joining private room %q: %v", ciu.Title, err)
+			}
 		case prd := <-prdch:
 			fmt.Println("got prd:", prd)
 		case <-pinch:

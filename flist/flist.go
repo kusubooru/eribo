@@ -390,6 +390,22 @@ type LCH struct {
 func (c LCH) CmdEncode() ([]byte, error)   { return cmdEncode("LCH", c) }
 func (c *LCH) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
+// CIU is a server command.
+//
+// Invites a user to a channel.
+//
+// Syntax
+//
+//     >> CIU { "sender":string,"title":string,"name":string }
+type CIU struct {
+	Sender string `json:"sender"`
+	Title  string `json:"title"`
+	Name   string `json:"name"`
+}
+
+func (c CIU) CmdEncode() ([]byte, error)   { return cmdEncode("CIU", c) }
+func (c *CIU) CmdDecode(data []byte) error { return cmdDecode(data, c) }
+
 type VAR struct {
 	Variable string          `json:"variable"`
 	Value    json.RawMessage `json:"value"`
@@ -483,97 +499,48 @@ func isCmd(data []byte, cmdType string) bool {
 var ErrUnknownCmd = errors.New("unknown command")
 
 func DecodeCommand(data []byte) (Command, error) {
+	var c Command
 	switch {
 	case isCmd(data, "IDN"):
-		idn := new(IDN)
-		if err := idn.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("IDN decode: %v", err)
-		}
-		return idn, nil
+		c = new(IDN)
 	case isCmd(data, "MSG"):
-		msg := new(MSG)
-		if err := msg.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("MSG decode: %v", err)
-		}
-		return msg, nil
+		c = new(MSG)
 	case isCmd(data, "PRI"):
-		pri := new(PRI)
-		if err := pri.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("PRI decode: %v", err)
-		}
-		return pri, nil
+		c = new(PRI)
 	case isCmd(data, "ORS"):
-		ors := new(ORS)
-		if err := ors.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("ORS decode: %v", err)
-		}
-		return ors, nil
+		c = new(ORS)
 	case isCmd(data, "LIS"):
-		lis := new(LIS)
-		if err := lis.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("LIS decode: %v", err)
-		}
-		return lis, nil
+		c = new(LIS)
 	case isCmd(data, "NLN"):
-		nln := new(NLN)
-		if err := nln.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("NLN decode: %v", err)
-		}
-		return nln, nil
+		c = new(NLN)
 	case isCmd(data, "FLN"):
-		fln := new(FLN)
-		if err := fln.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("FLN decode: %v", err)
-		}
-		return fln, nil
+		c = new(FLN)
 	case isCmd(data, "ICH"):
-		ich := new(ICH)
-		if err := ich.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("ICH decode: %v", err)
-		}
-		return ich, nil
+		c = new(ICH)
 	case isCmd(data, "PRD"):
-		prd := new(PRD)
-		if err := prd.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("PRD decode: %v", err)
-		}
-		return prd, nil
+		c = new(PRD)
 	case isCmd(data, "STA"):
-		sta := new(STA)
-		if err := sta.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("STA decode: %v", err)
-		}
-		return sta, nil
+		c = new(STA)
 	case isCmd(data, "JCH"):
-		jch := new(JCH)
-		if err := jch.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("JCH decode: %v", err)
-		}
-		return jch, nil
+		c = new(JCH)
 	case isCmd(data, "LCH"):
-		lch := new(LCH)
-		if err := lch.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("LCH decode: %v", err)
-		}
-		return lch, nil
+		c = new(LCH)
+	case isCmd(data, "CIU"):
+		c = new(CIU)
 	case isCmd(data, "VAR"):
-		v := new(VAR)
-		if err := v.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("VAR decode: %v", err)
-		}
-		return v, nil
+		c = new(VAR)
 	case isCmd(data, "ERR"):
-		err := new(ERR)
-		if err := err.CmdDecode(data); err != nil {
-			return nil, fmt.Errorf("ERR decode: %v", err)
-		}
-		return err, nil
+		c = new(ERR)
 	case isCmd(data, "PIN"):
-		pin := new(PIN)
-		return pin, nil
-	default:
-		return nil, ErrUnknownCmd
+		c = new(PIN)
 	}
+	if c != nil {
+		if err := c.CmdDecode(data); err != nil {
+			return nil, fmt.Errorf("%T decode: %v", c, err)
+		}
+		return c, nil
+	}
+	return nil, ErrUnknownCmd
 }
 
 func (c *Client) writeMessage(data []byte) error {
