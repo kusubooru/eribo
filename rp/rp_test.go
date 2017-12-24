@@ -8,7 +8,7 @@ import (
 func TestTieUps(t *testing.T) {
 	for _, tt := range tieUps {
 		checkEmote(t, tt)
-		checkBBcode(t, tt)
+		checkBBCode(t, tt)
 		checkVerbCount(t, tt, "%s", 1)
 	}
 }
@@ -27,18 +27,24 @@ func checkEmote(t *testing.T, s string) {
 	}
 }
 
-func checkBBcode(t *testing.T, s string) {
+func checkBBCode(t *testing.T, s string) {
 	t.Helper()
 	checkSyntax(t, s, "[", "]")
 	checkSyntax(t, s, "[u]", "[/u]")
 	checkSyntax(t, s, "[color=", "[/color]")
 }
 
+func checkActionsTietool(t *testing.T, s string) {
+	t.Helper()
+	checkSyntax(t, s, "{", "}")
+	checkSyntax(t, s, "{", "}")
+}
+
 func checkBBcodeTktool(t *testing.T, tool Tktool) {
 	t.Helper()
-	checkBBcode(t, tool.Poor)
-	checkBBcode(t, tool.Common)
-	checkBBcode(t, tool.Uncommon)
+	checkBBCode(t, tool.Poor)
+	checkBBCode(t, tool.Common)
+	checkBBCode(t, tool.Uncommon)
 }
 
 func checkSyntax(t *testing.T, s, start, end string) {
@@ -52,6 +58,13 @@ func checkVerbCount(t *testing.T, s, verb string, n int) {
 	t.Helper()
 	if got, want := strings.Count(s, verb), n; got != want {
 		t.Errorf("Number of %q = %d, want %d, message is: %q", verb, got, want, s)
+	}
+}
+
+func checksSubstringExists(t *testing.T, s, substr string) {
+	t.Helper()
+	if !strings.Contains(s, substr) {
+		t.Errorf("Expected %q to be in message %q", substr, s)
 	}
 }
 
@@ -84,10 +97,22 @@ func TestTktools(t *testing.T) {
 	}
 }
 
+func TestTietools(t *testing.T) {
+	for _, tt := range tietools {
+		s, err := tt.Apply("John Doe")
+		if err != nil {
+			t.Fatal(err)
+		}
+		checkEmote(t, s)
+		checkBBCode(t, s)
+		checksSubstringExists(t, s, "John Doe")
+	}
+}
+
 func TestVonproves(t *testing.T) {
 	for _, tt := range vonproves {
 		checkEmote(t, tt.Raw)
-		checkBBcode(t, tt.Raw)
+		checkBBCode(t, tt.Raw)
 		if tt.HasDate || tt.HasDuration {
 			checkVerbCount(t, tt.Raw, "%v", 1)
 		}

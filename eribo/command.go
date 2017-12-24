@@ -18,6 +18,7 @@ const (
 	CmdJojo
 	CmdLoth
 	CmdDadJoke
+	CmdTietool
 )
 
 func (c Command) String() string {
@@ -40,6 +41,8 @@ func (c Command) String() string {
 		return "!loth"
 	case CmdDadJoke:
 		return "!dadjoke"
+	case CmdTietool:
+		return "!tietool"
 	}
 }
 
@@ -63,15 +66,22 @@ func makeCommand(s string) Command {
 		return CmdLoth
 	case "!dadjoke":
 		return CmdDadJoke
+	case "!tietool":
+		return CmdTietool
 	}
 }
 
-func ParseCommand(s string) Command {
-	cmd := strings.Fields(s)
-	if len(cmd) == 0 {
-		return CmdUnknown
+func ParseCommand(s string) (cmd Command, args []string) {
+	args = []string{}
+	f := strings.Fields(s)
+	if len(f) == 0 {
+		return CmdUnknown, args
 	}
-	return makeCommand(cmd[0])
+	cmd = makeCommand(f[0])
+	if len(f) > 1 {
+		args = f[1:]
+	}
+	return cmd, args
 }
 
 func ParseCustomCommand(s string) (cmd string, args []string) {

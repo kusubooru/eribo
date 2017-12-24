@@ -6,23 +6,28 @@ import (
 )
 
 var parseCommandTests = []struct {
-	in  string
-	out Command
+	in   string
+	cmd  Command
+	args []string
 }{
-	{"", CmdUnknown},
-	{"!tomato", CmdTomato},
-	{"!tomato ", CmdTomato},
-	{"!tomato    ", CmdTomato},
-	{"!tomato			", CmdTomato},
-	{"!tomato			1 2		3", CmdTomato},
-	{" !tomato", CmdTomato},
-	{"foo !tomato", CmdUnknown},
+	{"", CmdUnknown, []string{}},
+	{"!tomato", CmdTomato, []string{}},
+	{"!tomato ", CmdTomato, []string{}},
+	{"!tomato    ", CmdTomato, []string{}},
+	{"!tomato			", CmdTomato, []string{}},
+	{"!tomato			1 2		3", CmdTomato, []string{"1", "2", "3"}},
+	{" !tomato", CmdTomato, []string{}},
+	{"foo !tomato", CmdUnknown, []string{"!tomato"}},
 }
 
 func TestParseCommand(t *testing.T) {
 	for _, tt := range parseCommandTests {
-		if want, got := tt.out, ParseCommand(tt.in); got != want {
-			t.Errorf("ParseCommand(%q) = %q, want %q", tt.in, got, want)
+		cmd, args := ParseCommand(tt.in)
+		if got, want := cmd, tt.cmd; got != want {
+			t.Errorf("ParseCommand(%q) cmd = %q, want %q", tt.in, got, want)
+		}
+		if got, want := args, tt.args; !reflect.DeepEqual(got, want) {
+			t.Errorf("ParseCommand(%q) args = %q, want %q", tt.in, got, want)
 		}
 	}
 }

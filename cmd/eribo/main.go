@@ -524,7 +524,8 @@ func respond(
 	lowNames []string,
 ) {
 	var msg string
-	cmd := eribo.ParseCommand(m.Message)
+	var rperr error
+	cmd, args := eribo.ParseCommand(m.Message)
 	switch cmd {
 	case eribo.CmdTieup:
 		msg = rp.RandTieUp(m.Character)
@@ -536,6 +537,16 @@ func respond(
 		msg = rp.RandVonprove(m.Character)
 	case eribo.CmdJojo:
 		msg = rp.RandJojo(m.Character)
+	case eribo.CmdTietool:
+		toolType := ""
+		if len(args) != 0 {
+			toolType = args[0]
+		}
+		msg, rperr = rp.RandTietool(m.Character, toolType)
+		if rperr != nil {
+			log.Printf("RandTietool error: %v", rperr)
+			return
+		}
 	case eribo.CmdDadJoke:
 		j, err := dadjoke.Random()
 		if err != nil {
@@ -601,7 +612,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 	switch cmd {
 	case "!version":
 		msg = botVersion
-	case "!simtools":
+	case "!simtktools":
 		rolls := atoiFirstArg(args, 100)
 		table := &loot.Table{}
 		for _, t := range rp.Tktools() {
@@ -611,6 +622,23 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		var buf bytes.Buffer
 		buf.WriteString("\n")
 		for i, t := range rp.Tktools() {
+			buf.WriteString(fmt.Sprintf("%s = %d, %.1f%%\n", t.Name, drops[i], pr[i]*100.0))
+		}
+		msg = buf.String()
+	case "!simtietools":
+		rolls := atoiFirstArg(args, 100)
+		table := &loot.Table{}
+		toolType := ""
+		if len(args) > 1 {
+			toolType = args[1]
+		}
+		for _, t := range rp.Tietools(toolType) {
+			table.Add(t, t.Quality.Weight())
+		}
+		drops, pr := table.Sim(rolls)
+		var buf bytes.Buffer
+		buf.WriteString("\n")
+		for i, t := range rp.Tietools(toolType) {
 			buf.WriteString(fmt.Sprintf("%s = %d, %.1f%%\n", t.Name, drops[i], pr[i]*100.0))
 		}
 		msg = buf.String()
