@@ -612,6 +612,11 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 	switch cmd {
 	case "!version":
 		msg = botVersion
+	case "!status":
+		sta := flist.STA{Status: flist.StatusBusy, StatusMsg: strings.Join(args, " ")}
+		if err := c.SendCmd(sta); err != nil {
+			log.Println("owner changing status:", err)
+		}
 	case "!simtktools":
 		rolls := atoiFirstArg(args, 100)
 		table := &loot.Table{}
