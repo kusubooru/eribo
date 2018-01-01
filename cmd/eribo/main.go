@@ -184,8 +184,8 @@ func main() {
 	channelMap := eribo.NewChannelMap()
 
 	// Change bot status.
-	sta := &flist.STA{Status: flist.StatusBusy, StatusMsg: *statusMsg}
-	if err := c.SendSTA(sta); err != nil {
+	sta := flist.STA{Status: flist.StatusBusy, StatusMsg: *statusMsg}
+	if err := c.SendCmd(sta); err != nil {
 		log.Println(err)
 		return
 	}
@@ -387,8 +387,8 @@ func handleMessages(
 			for _, title := range roomTitles {
 				ch := flist.FindChannel(ors.Channels, title)
 				if ch != nil {
-					jch := &flist.JCH{Channel: ch.Name}
-					if err := c.SendJCH(jch); err != nil {
+					jch := flist.JCH{Channel: ch.Name}
+					if err := c.SendCmd(jch); err != nil {
 						log.Println("error joining private room %q: %v", title, err)
 					}
 				}
@@ -468,14 +468,14 @@ func handleMessages(
 		case lch := <-lchch:
 			channelMap.DelPlayer(lch.Channel, lch.Character)
 		case ciu := <-ciuch:
-			jch := &flist.JCH{Channel: ciu.Name}
-			if err := c.SendJCH(jch); err != nil {
+			jch := flist.JCH{Channel: ciu.Name}
+			if err := c.SendCmd(jch); err != nil {
 				log.Println("CIU error joining private room %q: %v", ciu.Title, err)
 			}
 		case prd := <-prdch:
 			fmt.Println("got prd:", prd)
 		case <-pinch:
-			if err := c.SendPIN(); err != nil {
+			if err := c.SendCmd(flist.PIN{}); err != nil {
 				log.Println("send PIN failed:", err)
 			}
 		case idn := <-idnch:

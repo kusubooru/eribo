@@ -29,6 +29,7 @@ const (
 )
 
 type CmdEncoder interface {
+	CmdName() string
 	CmdEncode() ([]byte, error)
 }
 
@@ -59,7 +60,8 @@ func cmdDecode(data []byte, v interface{}) error {
 
 type PIN struct{}
 
-func (c *PIN) CmdEncode() ([]byte, error)  { return cmdEncode("PIN", nil) }
+func (c PIN) CmdName() string              { return "PIN" }
+func (c PIN) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *PIN) CmdDecode(data []byte) error { return nil }
 
 type IDN struct {
@@ -82,7 +84,8 @@ func (c *Client) NewIDN(account, ticket, character string) *IDN {
 	}
 }
 
-func (c *IDN) CmdEncode() ([]byte, error)  { return cmdEncode("IDN", c) }
+func (c IDN) CmdName() string              { return "IDN" }
+func (c IDN) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *IDN) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 type Channel struct {
@@ -113,7 +116,8 @@ type ORS struct {
 	Channels []Channel `json:"channels,omitempty"`
 }
 
-func (c *ORS) CmdEncode() ([]byte, error)  { return cmdEncode("ORS", c) }
+func (c ORS) CmdName() string              { return "ORS" }
+func (c ORS) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *ORS) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 // LIS is a server command.
@@ -147,7 +151,8 @@ type LIS struct {
 	Characters [][]string `json:"characters"`
 }
 
-func (c *LIS) CmdEncode() ([]byte, error)  { return cmdEncode("LIS", c) }
+func (c LIS) CmdName() string              { return "LIS" }
+func (c LIS) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *LIS) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 // FLN is a server command.
@@ -169,7 +174,8 @@ type FLN struct {
 	Character string `json:"character"`
 }
 
-func (c *FLN) CmdEncode() ([]byte, error)  { return cmdEncode("FLN", c) }
+func (c FLN) CmdName() string              { return "FLN" }
+func (c FLN) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *FLN) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 // NLN is a server command.
@@ -198,7 +204,8 @@ type NLN struct {
 	Status   Status `json:"status"`
 }
 
-func (c *NLN) CmdEncode() ([]byte, error)  { return cmdEncode("NLN", c) }
+func (c NLN) CmdName() string              { return "NLN" }
+func (c NLN) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *NLN) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 // ERR is a server command.
@@ -217,7 +224,8 @@ type ERR struct {
 	Message string `json:"message"`
 }
 
-func (c *ERR) CmdEncode() ([]byte, error)  { return cmdEncode("ERR", c) }
+func (c ERR) CmdName() string              { return "ERR" }
+func (c ERR) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *ERR) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 type ICH struct {
@@ -228,7 +236,8 @@ type ICH struct {
 	} `json:"users"`
 }
 
-func (c *ICH) CmdEncode() ([]byte, error)  { return cmdEncode("ICH", c) }
+func (c ICH) CmdName() string              { return "ICH" }
+func (c ICH) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *ICH) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 type MSG struct {
@@ -237,8 +246,9 @@ type MSG struct {
 	Channel   string `json:"channel"`
 }
 
-func (m *MSG) CmdEncode() ([]byte, error)  { return cmdEncode("MSG", m) }
-func (m *MSG) CmdDecode(data []byte) error { return json.Unmarshal(data[3:], m) }
+func (c MSG) CmdName() string              { return "MSG" }
+func (c MSG) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
+func (c *MSG) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 type PRI struct {
 	Character string `json:"character,omitempty"`
@@ -246,14 +256,16 @@ type PRI struct {
 	Recipient string `json:"recipient,omitempty"`
 }
 
-func (m *PRI) CmdEncode() ([]byte, error)  { return cmdEncode("PRI", m) }
-func (m *PRI) CmdDecode(data []byte) error { return json.Unmarshal(data[3:], m) }
+func (c PRI) CmdName() string              { return "PRI" }
+func (c PRI) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
+func (c *PRI) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 type PRO struct {
 	Character string `json:"character"`
 }
 
-func (c *PRO) CmdEncode() ([]byte, error)  { return cmdEncode("PRO", c) }
+func (c PRO) CmdName() string              { return "PRO" }
+func (c PRO) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *PRO) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 type PRDType string
@@ -272,7 +284,8 @@ type PRD struct {
 	Value   string  `json:"value"`
 }
 
-func (c *PRD) CmdEncode() ([]byte, error)  { return cmdEncode("PRD", c) }
+func (c PRD) CmdName() string              { return "PRD" }
+func (c PRD) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *PRD) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 type Role string
@@ -321,7 +334,8 @@ type STA struct {
 	Character string `json:"character,omitempty"`
 }
 
-func (c *STA) CmdEncode() ([]byte, error)  { return cmdEncode("STA", c) }
+func (c STA) CmdName() string              { return "STA" }
+func (c STA) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *STA) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 // JCH is a server and client command.
@@ -371,7 +385,8 @@ type JCH struct {
 	} `json:"character,omitempty"`
 }
 
-func (c *JCH) CmdEncode() ([]byte, error)  { return cmdEncode("JCH", c) }
+func (c JCH) CmdName() string              { return "JCH" }
+func (c JCH) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *JCH) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 // LCH is a server command.
@@ -387,7 +402,8 @@ type LCH struct {
 	Character string `json:"character"`
 }
 
-func (c LCH) CmdEncode() ([]byte, error)   { return cmdEncode("LCH", c) }
+func (c LCH) CmdName() string              { return "LCH" }
+func (c LCH) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *LCH) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 // CIU is a server command.
@@ -403,7 +419,8 @@ type CIU struct {
 	Name   string `json:"name"`
 }
 
-func (c CIU) CmdEncode() ([]byte, error)   { return cmdEncode("CIU", c) }
+func (c CIU) CmdName() string              { return "CIU" }
+func (c CIU) CmdEncode() ([]byte, error)   { return cmdEncode(c.CmdName(), c) }
 func (c *CIU) CmdDecode(data []byte) error { return cmdDecode(data, c) }
 
 type VAR struct {
@@ -413,7 +430,8 @@ type VAR struct {
 	PrivMax  int
 }
 
-func (c VAR) CmdEncode() ([]byte, error) { return cmdEncode("VAR", c) }
+func (c VAR) CmdName() string            { return "VAR" }
+func (c VAR) CmdEncode() ([]byte, error) { return cmdEncode(c.CmdName(), c) }
 func (c *VAR) CmdDecode(data []byte) error {
 	if err := cmdDecode(data, c); err != nil {
 		return err
@@ -462,10 +480,6 @@ func (c *Client) Close() error {
 
 func (c *Client) Disconnect() error {
 	return c.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-}
-
-func (c *Client) SendPIN() error {
-	return c.ws.WriteMessage(websocket.TextMessage, []byte("PIN"))
 }
 
 func (c *Client) ReadMessage() ([]byte, error) {
@@ -577,42 +591,18 @@ func (c *Client) SendPRI(pri *PRI) error {
 	return nil
 }
 
-func (c *Client) SendPRO(pro *PRO) error {
-	data, err := pro.CmdEncode()
-	if err != nil {
-		return fmt.Errorf("PRO encode failed: %v", err)
-	}
-
-	if err := c.writeMessage(data); err != nil {
-		return fmt.Errorf("SendPRO error: %v", err)
-	}
-	return nil
-}
-
-func (c *Client) SendJCH(jch *JCH) error {
-	data, err := jch.CmdEncode()
-	if err != nil {
-		return fmt.Errorf("JCH encode failed: %v", err)
-	}
-
-	if err := c.writeMessage(data); err != nil {
-		return fmt.Errorf("SendJCH error: %v", err)
-	}
-	return nil
-}
-
 func (c *Client) SendORS() error {
 	return c.writeMessage([]byte("ORS"))
 }
 
-func (c *Client) SendSTA(sta *STA) error {
-	data, err := sta.CmdEncode()
+func (c *Client) SendCmd(cmd CmdEncoder) error {
+	data, err := cmd.CmdEncode()
 	if err != nil {
-		return fmt.Errorf("STA encode failed: %v", err)
+		return fmt.Errorf("%q encoding: %v", cmd.CmdName(), err)
 	}
 
 	if err := c.writeMessage(data); err != nil {
-		return fmt.Errorf("SendSTA error: %v", err)
+		return fmt.Errorf("%q writing message: %v", cmd.CmdName(), err)
 	}
 	return nil
 }
@@ -624,15 +614,7 @@ func (c *Client) Identify(account, password, character string) error {
 	}
 
 	idn := c.NewIDN(account, ticket, character)
-	data, err := idn.CmdEncode()
-	if err != nil {
-		return fmt.Errorf("IDN encode failed: %v", err)
-	}
-
-	if err := c.ws.WriteMessage(websocket.TextMessage, data); err != nil {
-		return fmt.Errorf("identify error: %v", err)
-	}
-	return nil
+	return c.SendCmd(idn)
 }
 
 func GetTicket(account, password string) (string, error) {
