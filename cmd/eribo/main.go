@@ -309,7 +309,7 @@ func readMessages(
 			default:
 			}
 		case *flist.ERR:
-			log.Println(fmt.Errorf("Error %d: %s", t.Number, t.Message))
+			log.Println(fmt.Errorf("flist ERR %d: %s", t.Number, t.Message))
 		}
 	}
 }
