@@ -681,10 +681,7 @@ func (d CharacterData) HumanKinks(kinks map[string]string) map[string]string {
 }
 
 func (d CharacterData) HasFaveKink(kinksMap map[string]string, kink string) bool {
-	if d.HumanKinks(kinksMap)[kink] == "fave" {
-		return true
-	}
-	return false
+	return d.HumanKinks(kinksMap)[kink] == "fave"
 }
 
 func (d CharacterData) HasFaveCustomKink(kinks ...string) bool {

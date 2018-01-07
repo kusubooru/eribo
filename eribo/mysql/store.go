@@ -89,8 +89,5 @@ func (db *EriboStore) AddFeedback(f *eribo.Feedback) error {
 	}
 	const query = `INSERT INTO feedback(message, player, created) VALUES (?, ?, ?)`
 	_, err := db.Exec(query, f.Message, f.Player, f.Created)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

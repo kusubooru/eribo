@@ -13,10 +13,7 @@ func (db *EriboStore) AddCmdLog(l *eribo.CmdLog) error {
 	}
 	const query = `INSERT INTO cmd_logs(command, args, player, channel, created) VALUES (?, ?, ?, ?, ?)`
 	_, err := db.Exec(query, l.Command, l.Args, l.Player, l.Channel, l.Created)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (db *EriboStore) GetCmdLog(id int64) (*eribo.CmdLog, error) {
@@ -58,10 +55,7 @@ func (db *EriboStore) AddLothLog(l *eribo.LothLog) error {
 	loth_logs(issuer, channel, created, name, role, status, expires, is_new, targets)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err := db.Exec(query, l.Issuer, l.Channel, l.Created, name, role, status, expires, l.IsNew, l.Targets)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (db *EriboStore) GetRecentLothLogs(limit, offset int) ([]*eribo.LothLog, error) {

@@ -18,7 +18,7 @@ func (v Vonprove) Apply(user string) string {
 		return fmt.Sprintf(clean(v.Raw), vonproved.Format("Monday, 02 Jan 2006"))
 	}
 	if v.HasDuration {
-		return fmt.Sprintf(clean(v.Raw), time.Now().Sub(vonproved))
+		return fmt.Sprintf(clean(v.Raw), time.Since(vonproved))
 	}
 	if v.HasUser {
 		return fmt.Sprintf(clean(v.Raw), user)
