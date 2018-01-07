@@ -555,6 +555,11 @@ func respond(
 		}
 		msg = j.Joke
 	case eribo.CmdLoth:
+		if len(args) > 0 && args[0] == "time" {
+			loth := channelMap.Loth(m.Channel)
+			msg = rp.LothTime(loth)
+			break
+		}
 		loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour, lowNames)
 		lothLog := &eribo.LothLog{Issuer: m.Character, Channel: m.Channel, Loth: loth, IsNew: isNew, Targets: targets}
 		if err := store.AddLothLog(lothLog); err != nil {
@@ -562,6 +567,7 @@ func respond(
 		}
 		msg = rp.Loth(m.Character, loth, isNew, targets)
 	}
+
 	if msg != "" {
 		e := &eribo.CmdLog{Command: cmd, Player: m.Character, Channel: m.Channel}
 		go func(e *eribo.CmdLog) {

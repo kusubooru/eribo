@@ -184,6 +184,12 @@ func (c ChannelMap) GetActivePlayers() *PlayerMap {
 	return actives
 }
 
+func (c *ChannelMap) Loth(channel string) *Loth {
+	c.RLock()
+	defer c.RUnlock()
+	return c.lothm[channel]
+}
+
 func (c *ChannelMap) ChooseLoth(playerName, channel, botName string, d time.Duration, lowNames []string) (*Loth, bool, []*Player) {
 	c.RLock()
 	loth := c.lothm[channel]

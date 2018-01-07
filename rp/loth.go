@@ -6,6 +6,16 @@ import (
 	"github.com/kusubooru/eribo/eribo"
 )
 
+func LothTime(loth *eribo.Loth) string {
+	if loth == nil {
+		return "There's no loth."
+	}
+	if loth.Expired() {
+		return fmt.Sprintf("Time is up for %s. A new 'lee of the hour can be chosen!", loth.Name)
+	}
+	return fmt.Sprintf("Current 'lee of the hour is %s. Time left is %s.", loth.Name, loth.TimeLeft())
+}
+
 func Loth(user string, loth *eribo.Loth, isNew bool, targets []*eribo.Player) string {
 	switch {
 	case loth == nil:
