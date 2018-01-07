@@ -11,8 +11,8 @@ func (db *EriboStore) AddCmdLog(l *eribo.CmdLog) error {
 	if (l.Created == time.Time{}) {
 		l.Created = time.Now().UTC().Truncate(timeTruncate)
 	}
-	const query = `INSERT INTO cmd_logs(command, player, channel, created) VALUES (?, ?, ?, ?)`
-	_, err := db.Exec(query, l.Command, l.Player, l.Channel, l.Created)
+	const query = `INSERT INTO cmd_logs(command, args, player, channel, created) VALUES (?, ?, ?, ?, ?)`
+	_, err := db.Exec(query, l.Command, l.Args, l.Player, l.Channel, l.Created)
 	if err != nil {
 		return err
 	}

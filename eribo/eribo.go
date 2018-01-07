@@ -59,13 +59,14 @@ func (f Feedback) String() string {
 type CmdLog struct {
 	ID      int64
 	Command Command
+	Args    string
 	Player  string
 	Channel string
 	Created time.Time
 }
 
 func (l CmdLog) String() string {
-	return fmt.Sprintf("%4d: %v by %s - %s - %q", l.ID, l.Created.Format(time.Stamp), l.Player, l.Command, l.Channel)
+	return fmt.Sprintf("%4d: %v by %s - %s %s - %q", l.ID, l.Created.Format(time.Stamp), l.Player, l.Command, l.Args, l.Channel)
 }
 
 type LothLog struct {

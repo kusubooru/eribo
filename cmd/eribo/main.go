@@ -574,7 +574,7 @@ func respond(
 	}
 
 	if msg != "" {
-		e := &eribo.CmdLog{Command: cmd, Player: m.Character, Channel: m.Channel}
+		e := &eribo.CmdLog{Command: cmd, Args: strings.Join(args, " "), Player: m.Character, Channel: m.Channel}
 		go func(e *eribo.CmdLog) {
 			if err := logAdder.AddCmdLog(e); err != nil {
 				log.Printf("error logging %v: %v", cmd, err)
