@@ -514,9 +514,14 @@ func charFavesTickling(char *flist.CharacterData, ml *flist.MappingList) bool {
 	return false
 }
 
+type logAdder interface {
+	AddCmdLog(*eribo.CmdLog) error
+	AddLothLog(*eribo.LothLog) error
+}
+
 func respond(
 	c *flist.Client,
-	store eribo.Store,
+	logAdder logAdder,
 	m *flist.MSG,
 	channelMap *eribo.ChannelMap,
 	botName string,
@@ -562,7 +567,7 @@ func respond(
 		}
 		loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour, lowNames)
 		lothLog := &eribo.LothLog{Issuer: m.Character, Channel: m.Channel, Loth: loth, IsNew: isNew, Targets: targets}
-		if err := store.AddLothLog(lothLog); err != nil {
+		if err := logAdder.AddLothLog(lothLog); err != nil {
 			log.Printf("error logging Loth: %v, isNew: %v, Targets: %v: %v", loth, isNew, targets, err)
 		}
 		msg = rp.Loth(m.Character, loth, isNew, targets)
@@ -571,7 +576,7 @@ func respond(
 	if msg != "" {
 		e := &eribo.CmdLog{Command: cmd, Player: m.Character, Channel: m.Channel}
 		go func(e *eribo.CmdLog) {
-			if err := store.AddCmdLog(e); err != nil {
+			if err := logAdder.AddCmdLog(e); err != nil {
 				log.Printf("error logging %v: %v", cmd, err)
 			}
 		}(e)
