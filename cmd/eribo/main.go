@@ -69,7 +69,7 @@ func main() {
 		account     = flag.String("account", "", "websocket address to connect")
 		password    = flag.String("password", "", "websocket address to connect")
 		character   = flag.String("character", "", "websocket address to connect")
-		owner       = flag.String("owner", "Ryuunosuke Akashaka", "character name of the bot's owner")
+		owner       = flag.String("owner", "Ryuunosuke Akasaka", "character name of the bot's owner")
 		dataSource  = flag.String("datasource", "", "MySQL datasource")
 		joinRooms   = flag.String("join", "", "open private `rooms` to join in JSON format e.g. "+`-join '["Room 1", "Room 2"]'`)
 		statusMsg   = flag.String("status", "", "status message to be displayed")

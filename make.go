@@ -17,6 +17,7 @@ import (
 const (
 	commandName     = "eribo"
 	commandLocation = "./cmd/eribo"
+	deployFolder    = "/home/kusubooru/code/go/bin"
 )
 
 type platform struct {
@@ -49,6 +50,7 @@ func (bin binary) Names() []string {
 var (
 	release   = flag.Bool("release", false, "Build binaries for all target platforms.")
 	clean     = flag.Bool("clean", false, "Remove all created binaries from current directory.")
+	deploy    = flag.Bool("deploy", false, "Deploy binary to server.")
 	buildARCH = flag.String("arch", runtime.GOARCH, "Architecture to build for.")
 	buildOS   = flag.String("os", runtime.GOOS, "Operating system to build for.")
 )
@@ -83,7 +85,26 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *deploy {
+		deployBin(bin, *buildOS, *buildARCH)
+		os.Exit(0)
+	}
+
 	buildBinary(bin, *buildOS, *buildARCH)
+}
+
+func deployBin(bin binary, OS, arch string) {
+	buildBinary(bin, OS, arch)
+	name := bin.Name(OS, arch)
+
+	server := "kusubooru.com"
+	fmt.Println("Deploying to server", server)
+	cmd := exec.Command("scp", name, server+":"+deployFolder)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("Error deploying to server: %v", err)
+	}
 }
 
 func getVersion() string {
