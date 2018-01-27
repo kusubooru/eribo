@@ -373,7 +373,7 @@ func handleMessages(
 			if len(urls) != 0 {
 				m := &eribo.Message{Channel: msg.Channel, Player: msg.Character, Message: msg.Message}
 				if err := store.AddMessageWithURLs(m, urls); err != nil {
-					log.Println("error storing message:", err)
+					log.Printf("error storing message %#v: %v", m, err)
 				}
 			}
 			respond(c, store, msg, channelMap, botName, owner, lowNames)
