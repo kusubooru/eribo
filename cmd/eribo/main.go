@@ -537,7 +537,11 @@ func respond(
 	case eribo.CmdTomato:
 		msg = rp.Tomato(m.Character, owner)
 	case eribo.CmdTktool:
-		msg = rp.RandTktool(m.Character)
+		msg, rperr = rp.RandTktool(m.Character)
+		if rperr != nil {
+			log.Printf("RandTktool: %v", rperr)
+			return
+		}
 	case eribo.CmdVonprove:
 		msg = rp.RandVonprove(m.Character)
 	case eribo.CmdJojo:

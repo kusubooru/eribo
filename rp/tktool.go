@@ -1,225 +1,364 @@
 package rp
 
 import (
+	"bytes"
 	"fmt"
+	"text/template"
 	"time"
 
 	"github.com/kusubooru/eribo/loot"
 )
 
 type Tktool struct {
-	Name     string
-	Colors   []Color
-	Poor     string
-	Common   string
-	Uncommon string
-	Weight   int
+	Name    string
+	Colors  []Color
+	Quality Quality
+	Emote   *template.Template
+	Weight  int
 }
 
-func (t Tktool) Apply(user string, q Quality) string {
-	desc := ""
-	switch q {
-	case Poor:
-		desc = t.Poor
-	case Common:
-		desc = t.Common
-	case Uncommon:
-		desc = t.Uncommon
-	default:
-		desc = t.Common
+func (t Tktool) Apply(user string) (string, error) {
+	data := struct {
+		Tool  string
+		Color Color
+		User  string
+	}{
+		Tool: qualityColorBBCode(t.Quality, t.Name),
+		User: user,
 	}
-
-	if t.Colors != nil {
-		c := t.Colors[newRand(len(t.Colors))]
-		return fmt.Sprintf(clean(desc), user, c)
+	if len(t.Colors) != 0 {
+		data.Color = t.Colors[newRand(len(t.Colors))]
 	}
-	return fmt.Sprintf(clean(desc), user)
+	var buf bytes.Buffer
+	if err := t.Emote.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("applying %v to %q: %v", data, t.Emote.Root, err)
+	}
+	return clean(buf.String()), nil
 }
 
 func Tktools() []Tktool {
 	return tktools
 }
 
-func RandTktool(name string) string {
-	d := []loot.Drop{
-		{Item: Poor, Weight: 8},
-		{Item: Common, Weight: 40},
-		{Item: Uncommon, Weight: 4},
+func (t Tktool) QualityWeight() int {
+	switch t.Quality {
+	default:
+		return 0
+	case Poor:
+		return 8
+	case Common:
+		return 40
+	case Uncommon:
+		return 4
 	}
-	table := loot.NewTable(d)
-	_, roll := table.Roll(time.Now().UnixNano())
-	quality := Unknown
-	if q, ok := roll.(Quality); ok {
-		quality = q
-	}
+}
 
-	table = &loot.Table{}
+func RandTktool(name string) (string, error) {
+	table := &loot.Table{}
 	for _, t := range tktools {
-		table.Add(t, t.Weight)
+		table.Add(t, t.Weight*t.QualityWeight())
 	}
-	_, roll = table.Roll(time.Now().UnixNano())
-	if tool, ok := roll.(Tktool); ok {
-		return tool.Apply(name, quality)
+	_, roll := table.Roll(time.Now().UnixNano())
+	tool, ok := roll.(Tktool)
+	if !ok {
+		tool = tktools[newRand(len(tktools))]
 	}
-
-	// Just in case.
-	tool := tktools[newRand(len(tktools))]
-	return tool.Apply(name, quality)
+	return tool.Apply(name)
 }
 
 // TODO(jin): Pinwheel, backscratcher
 
 var tktools = []Tktool{
 	{
-		Name:   "[Goose Feather]",
-		Colors: []Color{Gray, White, Black},
-		Poor: `/me hands %s an old, %s [color=gray][Ravaged Goose
-		Feather][/color]. It's too wrecked to be usable for any meaningful
-		purpose.`,
-		Common: `/me hands %s a stiff, %s [color=white][Goose Feather][/color].`,
-		Uncommon: `/me hands %s a long, %s [color=green][Pristine Goose
-		Feather][/color] with a pointy tip.`,
-		Weight: 10,
+		Name:    "[Ravaged Goose Feather]",
+		Quality: Poor,
+		Weight:  10,
+		Emote: tmplMust(`/me hands {{.User}} an old {{.Tool}}. It's too wrecked
+		to be usable for any meaningful purpose.`),
 	},
 	{
-		Name:   "[Ostrich Feather]",
-		Colors: []Color{Black, White, Red, Orange, Blue, Turquoise, Brown, Yellow, Fuchsia, Pink, Purple, Violet, Green},
-		Poor: `/me hands %s the remains of an old, %s [color=gray][Ruined
-		Ostrich Feather][/color].`,
-		Common: `/me hands %s a large, %s [color=white][Ostrich
-		Feather][/color].`,
-		Uncommon: `/me hands %s an enormous, %s [color=green][Jaunty Ostrich
-		Feather][/color] which forms a slight curve at the top. Its shaft at
-		the bottom, ends into a sharp quill.`,
-		Weight: 10,
+		Name:    "[Goose Feather]",
+		Quality: Common,
+		Colors:  []Color{Gray, White, Black},
+		Weight:  10,
+		Emote:   tmplMust(`/me hands {{.User}} a stiff, {{.Color}} {{.Tool}}.`),
 	},
 	{
-		Name:   "[Feather Boa]",
-		Colors: []Color{Pink, Fuchsia, Purple, Black, Emerald, Red, Yellow, Blue},
-		Poor: `/me hands %s an old, %s [color=gray][Destroyed Feather
-		Boa][/color]. The remains of the wrecked item don't look usable for any
-		meaningful purpose.`,
-		Common: `/me hands %s a long, %s [color=white][Feather Boa][/color].`,
-		Uncommon: `/me hands %s a fluffy, long, %s [color=green][Chandelle
-		Feather Boa][/color]. With the slightest movement, its plumes animate
-		in an almost hypnotic way.`,
-		Weight: 3,
+		Name:    "[Pristine Goose Feather]",
+		Quality: Uncommon,
+		Colors:  []Color{Gray, White, Black},
+		Weight:  10,
+		Emote: tmplMust(`/me hands {{.User}} a long, {{.Color}} {{.Tool}} with
+		a pointy tip.`),
 	},
 	{
-		Name: "[Electric Flosser]",
-		Poor: `/me hands %s an [color=gray][Inoperable Electric Flosser][/color]. It
-		doesn't look functional anymore and the tip is missing.`,
-		Common: `/me hands %s an [color=white][Electric Flosser][/color].`,
-		Uncommon: `/me hands %s an [color=green][Aqua-colored Electric
-		Flosser][/color]. It is equipped with a fully charged battery and a
-		flexible, nylon tip.`,
-		Weight: 6,
+		Name:    "[Ruined Ostrich Feather]",
+		Quality: Poor,
+		Weight:  10,
+		Emote:   tmplMust(`/me hands {{.User}} the remains of an old {{.Tool}}.`),
 	},
 	{
-		Name: "[Electric Toothbrush]",
-		Poor: `/me hands %s a [color=gray][Busted Electric Toothbrush][/color].
-		It looks broken beyond repair and the brush is destroyed.`,
-		Common: `/me hands %s an [color=white][Electric Toothbrush][/color].`,
-		Uncommon: `/me hands %s a [color=green][Happy Electric
-		Toothbrush][/color]. The brush is round-shaped. Its body is light-blue
-		and contains lots of colorful smiley faces.`,
-		Weight: 8,
+		Name:    "[Ostrich Feather]",
+		Quality: Common,
+		Colors:  []Color{Black, White, Red, Orange, Blue, Turquoise, Brown, Yellow, Fuchsia, Pink, Purple, Violet, Green},
+		Weight:  10,
+		Emote:   tmplMust(`/me hands {{.User}} a large, {{.Color}} {{.Tool}}.`),
 	},
 	{
-		Name: "[Small Paintbrush]",
-		Poor: `/me hands %s a [color=gray][Snapped Paintbrush][/color]. Beyond
-		its broken body, there seem to be no bristles left on its tip.`,
-		Common: `/me hands %s a [color=white][Small Paintbrush][/color].`,
-		Uncommon: `/me hands %s a small, brown [color=green][Eastern
-		Paintbrush][/color] with soft bristles and a pointy tip. On its black,
-		wooden body, there are the characters 搔癢折磨 inscribed in crimson
-		red.`,
-		Weight: 10,
+		Name:    "[Jaunty Ostrich Feather]",
+		Quality: Uncommon,
+		Colors:  []Color{Black, White, Red, Orange, Blue, Turquoise, Brown, Yellow, Fuchsia, Pink, Purple, Violet, Green},
+		Weight:  10,
+		Emote: tmplMust(`/me hands {{.User}} an enormous, {{.Color}} {{.Tool}}
+		which forms a slight curve at the top. Its shaft at the bottom, ends
+		into a sharp quill.`),
 	},
 	{
-		Name:   "[Feather Duster]",
-		Colors: []Color{Gray, White, Black, Brown},
-		Poor: `/me hands %s a wrecked, %s [color=gray][Snapped Feather
-		Duster][/color]. The handle is broken and the top part, barely
-		resembles a duster`,
-		Common: `/me hands %s a clean, %s [color=white][Feather
-		Duster][/color].`,
-		Uncommon: `/me hands %s an [color=green][Impeccable Feather
-		Duster][/color] which looks like a matching accessory for a maid
-		uniform. Its long, %s, ostrich feathers look very soft and delicate.`,
-		Weight: 10,
+		Name:    "[Destroyed Feather Boa]",
+		Quality: Poor,
+		Weight:  3,
+		Emote: tmplMust(`/me hands {{.User}} an old {{.Tool}}. The remains of
+		the wrecked item don't look usable for any meaningful purpose.`),
 	},
 	{
-		Name:   "[Feather Gloves]",
-		Colors: []Color{Brown, Black, Violet, Purple, Red},
-		Poor: `/me hands %s a pair of %s [color=gray][Destroyed Feather
-		Gloves][/color]. The majority of the feathers that were previously
-		attached on each fingertip seem to be missing and the ones that remain
-		are totally ruined.`,
-		Common: `/me hands %s a pair of %s [color=white][Feather
-		Gloves][/color]. On each fingertip there's a feather attached.`,
-		Uncommon: `/me hands %s a pair of expensive, %s
-		[color=green][Unblemished Feather Gloves][/color]. They are made out of
-		high quality leather and on each fingertip there's a long, pristine
-		feather attached.`,
-		Weight: 5,
+		Name:    "[Feather Boa]",
+		Quality: Common,
+		Colors:  []Color{Pink, Fuchsia, Purple, Black, Emerald, Red, Yellow, Blue},
+		Weight:  3,
+		Emote:   tmplMust(`/me hands {{.User}} a long, {{.Color}} {{.Tool}}.`),
 	},
 	{
-		Name: "[Hitachi Magic Wand]",
-		Poor: `/me hands %s a [color=gray][Destroyed Hitachi Magic
-		Wand][/color]. The device is missing its cord and it looks broken
-		beyond repair.`,
-		Common: `/me hands %s a [color=white][Hitachi Magic Wand][/color]
-		electrical massager.`,
-		Uncommon: `/me hands %s a [color=green][Modified Hitachi Magic
-		Wand][/color]. This model seems to be cordless and its switch seems to
-		be altered. Apart from the traditional, O, I and II power levels, this
-		switch supports two extra levels indicated as III and XXX.`,
-		Weight: 5,
+		Name:    "[Chandelle Feather Boa]",
+		Quality: Uncommon,
+		Colors:  []Color{Pink, Fuchsia, Purple, Black, Emerald, Red, Yellow, Blue},
+		Weight:  3,
+		Emote: tmplMust(`/me hands {{.User}} a fluffy, long, {{.Color}}
+		{{.Tool}}. With the slightest movement, its plumes animate entrancingly.`),
 	},
 	{
-		Name: "[Metallic Cat Claws]",
-		Poor: `/me hands %s a set of [color=gray][Dented Cat Claws][/color].
-		Each piece is so horribly dented that is impossible to wear.`,
-		Common: `/me hands %s a set of wearable [color=white][Metallic Cat
-		Claws][/color].`,
-		Uncommon: `/me hands %s a set of wearable, well-crafted
-		[color=green][Silver Cat Claws][/color]. The pointy tips of the claws
-		seem to be sharp enough for play but not harm.`,
-		Weight: 3,
+		Name:    "[Inoperable Electric Flosser]",
+		Quality: Poor,
+		Weight:  6,
+		Emote: tmplMust(`/me hands {{.User}} an {{.Tool}}. It doesn't look
+		functional anymore and the tip is missing.`),
 	},
 	{
-		Name: "[Bottle of Baby Oil]",
-		Poor: `/me hands %s a [color=gray][Vial of Fish Oil][/color]. The
-		content looks dubious at best. Better not open it!`,
-		Common: `/me hands %s a small [color=white][Bottle of Baby Oil][/color].`,
-		Uncommon: `/me hands %s a [color=green][Bottle of Pure Lavender
-		Oil][/color]. The label of the bottle reads: 'A wonderful fragrance,
-		for silky soft skin and soothing massages.'`,
-		Weight: 7,
+		Name:    "[Electric Flosser]",
+		Quality: Common,
+		Weight:  6,
+		Emote:   tmplMust(`/me hands {{.User}} an {{.Tool}}.`),
 	},
 	{
-		Name:   "[Grooming Brush]",
-		Colors: []Color{Black, Blue, Violet, Pink, Orange, Purple, Brown},
-		Poor: `/me hands %s an old, %s [color=gray][Ruined Grooming
-		Brush][/color]. Most of the bristles are missing.`,
-		Common: `/me hands %s a small, %s [color=white][Grooming
-		Brush][/color].`,
-		Uncommon: `/me hands %s a large, %s [color=green][Porcupine Grooming
-		Brush][/color] with dense, black nylon bristles that form a slight
-		curve.`,
-		Weight: 8,
+		Name:    "[Aqua-colored Electric Flosser]",
+		Quality: Uncommon,
+		Weight:  6,
+		Emote: tmplMust(`/me hands {{.User}} an {{.Tool}}. It is equipped with
+		a fully charged battery and a flexible, nylon tip.`),
 	},
 	{
-		Name:   "[Afro Pick]",
-		Colors: []Color{Black, Red, Purple, Blue},
-		Poor: `/me hands %s an old, %s [color=gray][Toothless Afro
-		Pick][/color]. All the teeth are missing.`,
-		Common: `/me hands %s a plastic, %s [color=white][Afro Pick][/color].`,
-		Uncommon: `/me hands %s a %s [color=green][Enchanted Afro
-		Pick][/color]. Its loose, thick teeth are endlessly twitching at
-		seemingly random directions allowing it to walk if let free on the
-		ground.`,
-		Weight: 7,
+		Name:    "[Busted Electric Toothbrush]",
+		Quality: Poor,
+		Weight:  8,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Tool}}. It looks broken
+		beyond repair and the brush is destroyed.`),
+	},
+	{
+		Name:    "[Electric Toothbrush]",
+		Quality: Common,
+		Weight:  8,
+		Emote:   tmplMust(`/me hands {{.User}} an {{.Tool}}.`),
+	},
+	{
+		Name:    "[Happy Electric Toothbrush]",
+		Quality: Uncommon,
+		Weight:  8,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Tool}}. The brush is
+		round-shaped. Its body is light-blue and contains lots of colorful
+		smiley faces.`),
+	},
+	{
+		Name:    "[Snapped Paintbrush]",
+		Quality: Poor,
+		Weight:  10,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Tool}}. Beyond its broken
+		body, there seem to be no bristles left on its tip.`),
+	},
+	{
+		Name:    "[Small Paintbrush]",
+		Quality: Common,
+		Weight:  10,
+		Emote:   tmplMust(`/me hands {{.User}} a {{.Tool}}.`),
+	},
+	{
+		Name:    "[Eastern Paintbrush]",
+		Quality: Uncommon,
+		Weight:  10,
+		Emote: tmplMust(`/me hands {{.User}} a small, brown {{.Tool}} with soft
+		bristles and a pointy tip. On its black, wooden body, the characters
+		搔癢折磨 are inscribed in crimson red.`),
+	},
+	{
+		Name:    "[Snapped Feather Duster]",
+		Quality: Poor,
+		Colors:  []Color{Gray, White, Black, Brown},
+		Weight:  10,
+		Emote: tmplMust(`/me hands {{.User}} a wrecked, {{.Color}} {{.Tool}}. The handle
+		is broken and the top part barely resembles a duster`),
+	},
+	{
+		Name:    "[Feather Duster]",
+		Quality: Common,
+		Colors:  []Color{Gray, White, Black, Brown},
+		Weight:  10,
+		Emote:   tmplMust(`/me hands {{.User}} a clean, {{.Color}} {{.Tool}}.`),
+	},
+	{
+		Name:    "[Impeccable Feather Duster]",
+		Quality: Uncommon,
+		Colors:  []Color{Gray, White, Black, Brown},
+		Weight:  10,
+		Emote: tmplMust(`/me hands {{.User}} an {{.Tool}} which looks like a
+		matching accessory for a maid uniform. Its long, {{.Color}}, ostrich
+		feathers look very soft and delicate.`),
+	},
+	{
+		Name:    "[Destroyed Feather Gloves]",
+		Quality: Poor,
+		Colors:  []Color{Brown, Black, Violet, Purple, Red},
+		Weight:  5,
+		Emote: tmplMust(`/me hands {{.User}} a pair of {{.Color}} {{.Tool}} The
+		majority of the feathers that were previously attached on each
+		fingertip seem to be missing and the ones that remain are totally
+		ruined.`),
+	},
+	{
+		Name:    "[Feather Gloves]",
+		Quality: Common,
+		Colors:  []Color{Brown, Black, Violet, Purple, Red},
+		Weight:  5,
+		Emote: tmplMust(`/me hands {{.User}} a pair of {{.Color}} {{.Tool}}. On
+		each fingertip there's a feather attached.`),
+	},
+	{
+		Name:    "[Unblemished Feather Gloves]",
+		Quality: Uncommon,
+		Colors:  []Color{Brown, Black, Violet, Purple, Red},
+		Weight:  5,
+		Emote: tmplMust(`/me hands {{.User}} a pair of expensive, {{.Color}}
+		{{.Tool}}. They are made out of high quality leather and on each
+		fingertip there's a long, pristine feather attached.`),
+	},
+	{
+		Name:    "[Destroyed Hitachi Magic Wand]",
+		Quality: Poor,
+		Weight:  5,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Tool}}. The device is missing
+		its cord and it looks broken beyond repair.`),
+	},
+	{
+		Name:    "[Hitachi Magic Wand]",
+		Quality: Common,
+		Weight:  5,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Tool}} electrical
+		massager.`),
+	},
+	{
+		Name:    "[Modified Hitachi Magic Wand]",
+		Quality: Uncommon,
+		Weight:  5,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Tool}}. This model seems to
+		be cordless and its switch seems to be altered. Apart from the
+		traditional, O, I and II power levels, this switch supports two extra
+		levels indicated as III and XXX.`),
+	},
+	{
+		Name:    "[Dented Cat Claws]",
+		Quality: Poor,
+		Weight:  3,
+		Emote: tmplMust(`/me hands {{.User}} a set of {{.Tool}}. Each piece is
+		so horribly dented that is impossible to wear.`),
+	},
+	{
+		Name:    "[Metallic Cat Claws]",
+		Quality: Common,
+		Weight:  3,
+		Emote:   tmplMust(`/me hands {{.User}} a set of wearable {{.Tool}}.`),
+	},
+	{
+		Name:    "[Silver Cat Claws]",
+		Quality: Uncommon,
+		Weight:  3,
+		Emote: tmplMust(`/me hands {{.User}} a set of wearable, well-crafted
+		{{.Tool}}. The pointy tips of the claws seem to be sharp enough for
+		play but not harm.`),
+	},
+	{
+		Name:    "[Vial of Fish Oil]",
+		Quality: Poor,
+		Weight:  7,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Tool}}. The content looks dubious at
+		best. Better not open it!`),
+	},
+	{
+		Name:    "[Bottle of Baby Oil]",
+		Quality: Common,
+		Weight:  7,
+		Emote:   tmplMust(`/me hands {{.User}} a small {{.Tool}}.`),
+	},
+	{
+		Name:    "[Bottle of Pure Lavender Oil]",
+		Quality: Uncommon,
+		Weight:  7,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Tool}}. The label of the
+		bottle reads: 'A wonderful fragrance, for silky soft skin and soothing
+		massages.'`),
+	},
+	{
+		Name:    "[Ruined Grooming Brush]",
+		Quality: Poor,
+		Colors:  []Color{Black, Blue, Violet, Pink, Orange, Purple, Brown},
+		Weight:  8,
+		Emote: tmplMust(`/me hands {{.User}} an old, {{.Color}} {{.Tool}}. Most
+		of the bristles are missing.`),
+	},
+	{
+		Name:    "[Grooming Brush]",
+		Quality: Common,
+		Colors:  []Color{Black, Blue, Violet, Pink, Orange, Purple, Brown},
+		Weight:  8,
+		Emote:   tmplMust(`/me hands {{.User}} a small, {{.Color}} {{.Tool}}.`),
+	},
+	{
+		Name:    "[Porcupine Grooming Brush]",
+		Quality: Uncommon,
+		Colors:  []Color{Black, Blue, Violet, Pink, Orange, Purple, Brown},
+		Weight:  8,
+		Emote: tmplMust(`/me hands {{.User}} a large, {{.Color}} {{.Tool}} with
+		dense, black nylon bristles that form a slight curve.`),
+	},
+	{
+		Name:    "[Toothless Afro Pick]",
+		Quality: Poor,
+		Colors:  []Color{Black, Red, Purple, Blue},
+		Weight:  7,
+		Emote: tmplMust(`/me hands {{.User}} an old, {{.Color}} {{.Tool}}. All
+		the teeth are missing.`),
+	},
+	{
+		Name:    "[Afro Pick]",
+		Quality: Common,
+		Colors:  []Color{Black, Red, Purple, Blue},
+		Weight:  7,
+		Emote: tmplMust(`/me hands {{.User}} a plastic, {{.Color}}
+		{{.Tool}}.`),
+	},
+	{
+		Name:    "[Enchanted Afro Pick]",
+		Quality: Uncommon,
+		Colors:  []Color{Black, Red, Purple, Blue},
+		Weight:  7,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Color}} {{.Tool}}. Its loose,
+		thick teeth are endlessly twitching at seemingly random directions
+		allowing it to walk if let free on the ground.`),
 	},
 }
