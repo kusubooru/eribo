@@ -210,4 +210,16 @@ var tktools = []Tktool{
 		curve.`,
 		Weight: 8,
 	},
+	{
+		Name:   "[Afro Pick]",
+		Colors: []Color{Black, Red, Purple, Blue},
+		Poor: `/me hands %s an old, %s [color=gray][Toothless Afro
+		Pick][/color]. All the teeth are missing.`,
+		Common: `/me hands %s a plastic, %s [color=white][Afro Pick][/color].`,
+		Uncommon: `/me hands %s a %s [color=green][Enchanted Afro
+		Pick][/color]. Its loose, thick teeth are endlessly twitching at
+		seemingly random directions allowing it to walk if let free on the
+		ground.`,
+		Weight: 7,
+	},
 }
