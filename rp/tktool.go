@@ -66,8 +66,6 @@ func RandTktool(name string) (string, error) {
 	return tool.Apply(name)
 }
 
-// TODO(jin): Pinwheel, backscratcher
-
 var tktools = []Tktool{
 	{
 		Name:    "[Ravaged Goose Feather]",
@@ -360,5 +358,25 @@ var tktools = []Tktool{
 		Emote: tmplMust(`/me hands {{.User}} a {{.Color}} {{.Tool}}. Its loose,
 		thick teeth are endlessly twitching at seemingly random directions
 		allowing it to walk if let free on the ground.`),
+	},
+	{
+		Name:    "[Wooden Backscratcher]",
+		Quality: Common,
+		Weight:  8,
+		Emote:   tmplMust(`/me hands {{.User}} a {{.Tool}}.`),
+	},
+	{
+		Name:    "[Battery Operated Backscratcher]",
+		Quality: Uncommon,
+		Weight:  8,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Tool}}. It ends on a claw
+		which resembles a feminine hand with long, red polished nails and extra
+		rubber tips on its palm which rotate at a touch of the switch.`),
+	},
+	{
+		Name:    "[Wartenberg Wheel]",
+		Quality: Common,
+		Weight:  3,
+		Emote:   tmplMust(`/me hands {{.User}} a {{.Tool}} also known as a pinwheel.`),
 	},
 }
