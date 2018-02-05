@@ -26,40 +26,14 @@ import (
 	"github.com/kusubooru/eribo/rp"
 )
 
-func defaultAddr(addr string, testServer, insecure bool) string {
-	switch {
-	default:
-		//log.Printf("Using encrypted production server address: %q", addr)
-	case !testServer && insecure:
-		addr = "ws://chat.f-list.net:9722"
-		log.Printf("Using unencrypted production server address: %q", addr)
-	case testServer && !insecure:
-		addr = "wss://chat.f-list.net:8799"
-		log.Printf("Using encrypted test server address: %q", addr)
-	case testServer && insecure:
-		addr = "ws://chat.f-list.net:8722"
-		log.Printf("Using unencrypted test server address: %q", addr)
-	}
-	return addr
+var (
+	theVersion = "devel"
+	startTime  time.Time
+)
+
+func init() {
+	startTime = time.Now()
 }
-
-func splitRoomTitles(s string) ([]string, error) {
-	var rooms []string
-	if err := json.Unmarshal([]byte(s), &rooms); err != nil {
-		return nil, err
-	}
-	return rooms, nil
-}
-
-type lowLothNames []string
-
-func (names lowLothNames) String() string { return fmt.Sprintf("%q", []string(names)) }
-func (names *lowLothNames) Set(value string) error {
-	*names = append(*names, value)
-	return nil
-}
-
-var theVersion = "devel"
 
 func main() {
 	var (
@@ -219,6 +193,39 @@ func main() {
 		ciuch,
 		quit,
 	)
+}
+
+func defaultAddr(addr string, testServer, insecure bool) string {
+	switch {
+	default:
+		//log.Printf("Using encrypted production server address: %q", addr)
+	case !testServer && insecure:
+		addr = "ws://chat.f-list.net:9722"
+		log.Printf("Using unencrypted production server address: %q", addr)
+	case testServer && !insecure:
+		addr = "wss://chat.f-list.net:8799"
+		log.Printf("Using encrypted test server address: %q", addr)
+	case testServer && insecure:
+		addr = "ws://chat.f-list.net:8722"
+		log.Printf("Using unencrypted test server address: %q", addr)
+	}
+	return addr
+}
+
+func splitRoomTitles(s string) ([]string, error) {
+	var rooms []string
+	if err := json.Unmarshal([]byte(s), &rooms); err != nil {
+		return nil, err
+	}
+	return rooms, nil
+}
+
+type lowLothNames []string
+
+func (names lowLothNames) String() string { return fmt.Sprintf("%q", []string(names)) }
+func (names *lowLothNames) Set(value string) error {
+	*names = append(*names, value)
+	return nil
 }
 
 // readMessages or "the reader" reads messages in a loop, sepearates them into
@@ -532,6 +539,8 @@ func respond(
 	var rperr error
 	cmd, args := eribo.ParseCommand(m.Message)
 	switch cmd {
+	case eribo.CmdMuffin:
+		msg = rp.RandMuffin(m.Character)
 	case eribo.CmdTieup:
 		msg = rp.RandTieUp(m.Character)
 	case eribo.CmdTomato:
@@ -672,6 +681,8 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 			})
 		})
 		msg = buf.String()
+	case "!uptime":
+		msg = fmt.Sprintln(time.Since(startTime).Round(time.Second))
 	case "!feed":
 		limit, offset := atoiLimitOffset(args)
 		feedback, err := store.GetRecentFeedback(limit, offset)
