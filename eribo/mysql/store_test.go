@@ -26,7 +26,7 @@ func TestAddMessageWithURLs(t *testing.T) {
 		t.Fatal("AddMessageWithURLs failed:", err)
 	}
 
-	images, err := s.GetImages()
+	images, err := s.GetImages(5, 0, false)
 	if err != nil {
 		t.Fatal("GetImages failed:", err)
 	}
@@ -48,6 +48,105 @@ func TestAddMessageWithURLs(t *testing.T) {
 		data, _ = json.Marshal(want)
 		fmt.Println(string(data))
 		t.Fatalf("AddImages = \nhave: %#v\nwant: %#v", have, want)
+	}
+}
+
+func TestGetImages(t *testing.T) {
+	s := setup(t)
+	defer teardown(t, s)
+
+	created := time.Now().UTC().Add(time.Second).Truncate(timeTruncate)
+	m := &eribo.Message{
+		Channel: "foo",
+		Player:  "bar",
+		Message: "baz",
+		Created: created,
+	}
+	urls := []string{"http://url1", "http://url2"}
+	if err := s.AddMessageWithURLs(m, urls); err != nil {
+		t.Fatal("AddMessageWithURLs failed:", err)
+	}
+
+	created2 := created.Add(time.Second)
+	m.Created = created2
+	urls = []string{"http://url3"}
+	if err := s.AddMessageWithURLs(m, urls); err != nil {
+		t.Fatal("AddMessageWithURLs second failed:", err)
+	}
+
+	images, err := s.GetImages(5, 0, true)
+	if err != nil {
+		t.Fatal("GetImages failed:", err)
+	}
+	if got, want := len(images), 3; got != want {
+		t.Fatalf("GetImages produced %d results, want %d", got, want)
+	}
+	want := []*eribo.Image{
+		{ID: 3, URL: "http://url3", MessageID: 2, Created: created2,
+			Message: &eribo.Message{ID: 2, Channel: "foo", Player: "bar", Message: "baz", Created: created2},
+		},
+		{ID: 1, URL: "http://url1", MessageID: 1, Created: created,
+			Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz", Created: created},
+		},
+		{ID: 2, URL: "http://url2", MessageID: 1, Created: created,
+			Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz", Created: created},
+		},
+	}
+
+	if have := images; !reflect.DeepEqual(have, want) {
+		data, _ := json.Marshal(have)
+		fmt.Println(string(data))
+		data, _ = json.Marshal(want)
+		fmt.Println(string(data))
+		t.Fatalf("GetImages = \nhave: %#v\nwant: %#v", have, want)
+	}
+}
+
+// TODO(jin): implement AddImage and use that instead of AddMessageWithURLs for
+// cleaner tests.
+
+func TestToggleImageDone(t *testing.T) {
+	s := setup(t)
+	defer teardown(t, s)
+
+	created := time.Now().UTC().Add(time.Second).Truncate(timeTruncate)
+	m := &eribo.Message{
+		Channel: "foo",
+		Player:  "bar",
+		Message: "baz",
+		Created: created,
+	}
+	urls := []string{"http://url1", "http://url2"}
+	if err := s.AddMessageWithURLs(m, urls); err != nil {
+		t.Fatal("AddMessageWithURLs failed:", err)
+	}
+
+	if err := s.ToggleImageDone(2); err != nil {
+		t.Fatal("toggling image done failed:", err)
+	}
+
+	images, err := s.GetImages(5, 0, false)
+	if err != nil {
+		t.Fatal("GetImages failed:", err)
+	}
+	if got, want := len(images), 2; got != want {
+		t.Fatalf("GetImages produced %d results, want %d", got, want)
+	}
+	want := []*eribo.Image{
+		{ID: 1, URL: "http://url1", MessageID: 1, Created: created,
+			Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz", Created: created},
+		},
+		{ID: 2, URL: "http://url2", Done: true, MessageID: 1, Created: created,
+			Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz", Created: created},
+		},
+	}
+
+	if have := images; !reflect.DeepEqual(have, want) {
+		data, _ := json.Marshal(have)
+		fmt.Println(string(data))
+		data, _ = json.Marshal(want)
+		fmt.Println(string(data))
+		t.Fatalf("ToggleImageDone = \nhave: %#v\nwant: %#v", have, want)
 	}
 }
 

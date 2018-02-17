@@ -641,6 +641,38 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		if err := c.SendCmd(sta); err != nil {
 			log.Println("owner changing status:", err)
 		}
+
+	case "!imagedone":
+		if len(args) < 1 {
+			msg = "no image id provided"
+			break
+		}
+		id, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			msg = fmt.Sprintf("error parsing id: %v", err)
+			break
+		}
+		if err := store.ToggleImageDone(id); err != nil {
+			msg = fmt.Sprintf("error toggling image done: %v", err)
+		}
+	case "!images":
+		limit, offset := atoiLimitOffset(args)
+		reverse := false
+		if len(args) > 2 {
+			if args[2] == "desc" {
+				reverse = true
+			}
+		}
+		images, err := store.GetImages(limit, offset, reverse)
+		if err != nil {
+			log.Printf("%v error getting images: %v", cmd, err)
+		}
+		var b strings.Builder
+		fmt.Fprintln(&b)
+		for _, img := range images {
+			fmt.Fprintf(&b, "%v\n", img)
+		}
+		msg = b.String()
 	case "!simtktools":
 		rolls := atoiFirstArg(args, 100)
 		table := &loot.Table{}

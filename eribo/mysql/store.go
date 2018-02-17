@@ -39,7 +39,7 @@ func (db *EriboStore) AddMessageWithURLs(m *eribo.Message, urls []string) (err e
 	}
 
 	for _, u := range urls {
-		_, err := tx.Exec("INSERT INTO images(url, message_id, created) VALUES (?, ?, ?)", u, messageID, m.Created)
+		_, err := tx.Exec("INSERT INTO images(url, done, message_id, created) VALUES (?, ?, ?, ?)", u, false, messageID, m.Created)
 		if err != nil {
 			return err
 		}
@@ -47,9 +47,13 @@ func (db *EriboStore) AddMessageWithURLs(m *eribo.Message, urls []string) (err e
 	return nil
 }
 
-func (db *EriboStore) GetImages() ([]*eribo.Image, error) {
-	images := []*eribo.Image{}
-	const query = `
+func (db *EriboStore) GetImages(limit, offset int, reverse bool) ([]*eribo.Image, error) {
+	desc := ""
+	if reverse {
+		desc = "DESC"
+	}
+
+	var query = `
 	SELECT
 	  img.*,
 	  m.id as "message.id",
@@ -58,11 +62,44 @@ func (db *EriboStore) GetImages() ([]*eribo.Image, error) {
 	  m.message as "message.message",
 	  m.created as "message.created"
 	FROM images img
-	  JOIN messages m ON img.message_id=m.id`
-	if err := db.Select(&images, query); err != nil {
+	  JOIN messages m ON img.message_id=m.id
+	  ORDER BY created ` + desc + ` LIMIT ?, ?`
+
+	images := []*eribo.Image{}
+	if err := db.Select(&images, query, offset, limit); err != nil {
 		return nil, err
 	}
 	return images, nil
+}
+
+func (db *EriboStore) ToggleImageDone(id int64) (err error) {
+	tx, err := db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			if rerr := tx.Rollback(); rerr != nil {
+				err = fmt.Errorf("rollback failed: %v: %v", rerr, err)
+			}
+			return
+		}
+		err = tx.Commit()
+	}()
+
+	const query = `SELECT * FROM images WHERE id = ?`
+
+	img := &eribo.Image{}
+	if err := tx.Get(img, query, id); err != nil {
+		return err
+	}
+
+	const update = `update images set done = ? where id = ?`
+	if _, err := tx.Exec(update, !img.Done, id); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (db *EriboStore) GetAllFeedback(limit, offset int) ([]*eribo.Feedback, error) {

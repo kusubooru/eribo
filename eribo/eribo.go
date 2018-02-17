@@ -32,9 +32,18 @@ func (l Loth) Expired() bool {
 type Image struct {
 	ID        int64
 	URL       string
+	Done      bool
 	Created   time.Time
 	MessageID int64    `db:"message_id"`
 	Message   *Message `db:"message"`
+}
+
+func (i Image) String() string {
+	done := "0"
+	if i.Done {
+		done = "1"
+	}
+	return fmt.Sprintf("%6d: %v> %s by %s: [url]%s[/url]", i.ID, i.Created.Format(time.Stamp), done, i.Message.Player, i.URL)
 }
 
 type Message struct {
@@ -118,7 +127,8 @@ func (t *Targets) Scan(value interface{}) error {
 
 type Store interface {
 	AddMessageWithURLs(m *Message, urls []string) error
-	GetImages() ([]*Image, error)
+	GetImages(limit, offset int, reverse bool) ([]*Image, error)
+	ToggleImageDone(id int64) error
 
 	AddFeedback(f *Feedback) error
 	GetAllFeedback(limit, offset int) ([]*Feedback, error)
