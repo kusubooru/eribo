@@ -396,7 +396,7 @@ func handleMessages(
 				if ch != nil {
 					jch := flist.JCH{Channel: ch.Name}
 					if err := c.SendCmd(jch); err != nil {
-						log.Println("error joining private room %q: %v", title, err)
+						log.Printf("error joining private room %q: %v", title, err)
 					}
 				}
 			}
@@ -454,7 +454,7 @@ func handleMessages(
 			if player != nil && player.Role == "" && !player.Status.IsActive() && newStatus.IsActive() {
 				//fmt.Printf("STA changed to active for char %q\n", name)
 				if err := getCharDataAndSetRole(name, account, password, playerMap, mappingList); err != nil {
-					log.Println("STA: %v", err)
+					log.Printf("STA: %v", err)
 				}
 			}
 			playerMap.SetPlayerStatus(name, newStatus)
@@ -468,7 +468,7 @@ func handleMessages(
 			if player.Role == "" && player.Status.IsActive() {
 				//fmt.Printf("player %q joined, getting char data\n", name)
 				if err := getCharDataAndSetRole(name, account, password, playerMap, mappingList); err != nil {
-					log.Println("JCH: %v", err)
+					log.Printf("JCH: %v", err)
 				}
 			}
 			channelMap.SetPlayer(jch.Channel, player)
@@ -477,7 +477,7 @@ func handleMessages(
 		case ciu := <-ciuch:
 			jch := flist.JCH{Channel: ciu.Name}
 			if err := c.SendCmd(jch); err != nil {
-				log.Println("CIU error joining private room %q: %v", ciu.Title, err)
+				log.Printf("CIU error joining private room %q: %v", ciu.Title, err)
 			}
 		case prd := <-prdch:
 			fmt.Println("got prd:", prd)

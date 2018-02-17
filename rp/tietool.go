@@ -65,7 +65,7 @@ func (t Tietool) Apply(user string) (string, error) {
 	}
 	var buf bytes.Buffer
 	if err := t.Desc.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("failed to apply %v to %q: %v", data, t.Desc, err)
+		return "", fmt.Errorf("failed to apply %v to %v: %v", data, t.Desc, err)
 	}
 	return clean(buf.String()), nil
 }
