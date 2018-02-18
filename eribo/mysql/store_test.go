@@ -26,12 +26,9 @@ func TestAddMessageWithURLs(t *testing.T) {
 		t.Fatal("AddMessageWithURLs failed:", err)
 	}
 
-	images, err := s.GetImages(5, 0, false)
+	have, err := s.GetImages(5, 0, false)
 	if err != nil {
 		t.Fatal("GetImages failed:", err)
-	}
-	if got, want := len(images), 2; got != want {
-		t.Fatalf("GetImages produced %d results, want %d", got, want)
 	}
 	want := []*eribo.Image{
 		{ID: 1, URL: "http://url1", MessageID: 1, Created: created,
@@ -41,14 +38,7 @@ func TestAddMessageWithURLs(t *testing.T) {
 			Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz", Created: created},
 		},
 	}
-
-	if have := images; !reflect.DeepEqual(have, want) {
-		data, _ := json.Marshal(have)
-		fmt.Println(string(data))
-		data, _ = json.Marshal(want)
-		fmt.Println(string(data))
-		t.Fatalf("AddImages = \nhave: %#v\nwant: %#v", have, want)
-	}
+	deepEqual(t, have, want, "AddImages = ")
 }
 
 func TestGetImages(t *testing.T) {
@@ -74,12 +64,9 @@ func TestGetImages(t *testing.T) {
 		t.Fatal("AddMessageWithURLs second failed:", err)
 	}
 
-	images, err := s.GetImages(5, 0, true)
+	have, err := s.GetImages(5, 0, true)
 	if err != nil {
 		t.Fatal("GetImages failed:", err)
-	}
-	if got, want := len(images), 3; got != want {
-		t.Fatalf("GetImages produced %d results, want %d", got, want)
 	}
 	want := []*eribo.Image{
 		{ID: 3, URL: "http://url3", MessageID: 2, Created: created2,
@@ -92,14 +79,7 @@ func TestGetImages(t *testing.T) {
 			Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz", Created: created},
 		},
 	}
-
-	if have := images; !reflect.DeepEqual(have, want) {
-		data, _ := json.Marshal(have)
-		fmt.Println(string(data))
-		data, _ = json.Marshal(want)
-		fmt.Println(string(data))
-		t.Fatalf("GetImages = \nhave: %#v\nwant: %#v", have, want)
-	}
+	deepEqual(t, have, want, "GetImages = ")
 }
 
 func TestSetImageKuid(t *testing.T) {
@@ -154,12 +134,9 @@ func TestToggleImageDone(t *testing.T) {
 		t.Fatal("toggling image done failed:", err)
 	}
 
-	images, err := s.GetImages(5, 0, false)
+	have, err := s.GetImages(5, 0, false)
 	if err != nil {
 		t.Fatal("GetImages failed:", err)
-	}
-	if got, want := len(images), 2; got != want {
-		t.Fatalf("GetImages produced %d results, want %d", got, want)
 	}
 	want := []*eribo.Image{
 		{ID: 1, URL: "http://url1", MessageID: 1, Created: created,
@@ -169,17 +146,11 @@ func TestToggleImageDone(t *testing.T) {
 			Message: &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz", Created: created},
 		},
 	}
-
-	if have := images; !reflect.DeepEqual(have, want) {
-		data, _ := json.Marshal(have)
-		fmt.Println(string(data))
-		data, _ = json.Marshal(want)
-		fmt.Println(string(data))
-		t.Fatalf("ToggleImageDone = \nhave: %#v\nwant: %#v", have, want)
-	}
+	deepEqual(t, have, want, "toggling image done")
 }
 
 func deepEqual(t *testing.T, have, want interface{}, message string) {
+	t.Helper()
 	if !reflect.DeepEqual(have, want) {
 		data, _ := json.Marshal(have)
 		fmt.Println(string(data))
@@ -203,24 +174,14 @@ func TestAddFeedback(t *testing.T) {
 		t.Fatal("AddFeedback failed:", err)
 	}
 
-	feedback, err := s.GetAllFeedback(10, 0)
+	have, err := s.GetAllFeedback(10, 0)
 	if err != nil {
 		t.Fatal("GetFeedback failed:", err)
-	}
-	if got, want := len(feedback), 1; got != want {
-		t.Fatalf("GetFeedback produced %d results, want %d", got, want)
 	}
 	want := []*eribo.Feedback{
 		{ID: 1, Player: "foo", Message: "bar", Created: created},
 	}
-
-	if have := feedback; !reflect.DeepEqual(have, want) {
-		data, _ := json.Marshal(have)
-		fmt.Println(string(data))
-		data, _ = json.Marshal(want)
-		fmt.Println(string(data))
-		t.Fatalf("AddFeedback = \nhave: %#v\nwant: %#v", have, want)
-	}
+	deepEqual(t, have, want, "AddFeedback = ")
 }
 
 func TestGetRecentFeedback(t *testing.T) {
@@ -242,7 +203,7 @@ func TestGetRecentFeedback(t *testing.T) {
 		}
 	}
 
-	feedback, err := s.GetRecentFeedback(2, 0)
+	have, err := s.GetRecentFeedback(2, 0)
 	if err != nil {
 		t.Fatal("GetFeedback failed:", err)
 	}
@@ -251,12 +212,5 @@ func TestGetRecentFeedback(t *testing.T) {
 		{ID: 3, Player: "foo", Message: "bar", Created: created3},
 		{ID: 2, Player: "foo", Message: "bar", Created: created2},
 	}
-
-	if have := feedback; !reflect.DeepEqual(have, want) {
-		data, _ := json.Marshal(have)
-		fmt.Println(string(data))
-		data, _ = json.Marshal(want)
-		fmt.Println(string(data))
-		t.Fatalf("AddFeedback = \nhave: %#v\nwant: %#v", have, want)
-	}
+	deepEqual(t, have, want, "getting recent feedback")
 }

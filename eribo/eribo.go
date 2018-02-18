@@ -39,10 +39,6 @@ type Image struct {
 	Message   *Message `db:"message"`
 }
 
-// TODO(jin): Chat detects word stretching on URLS with /blah/ parts of more
-// than 49 character and it does not print the URL. Maybe print the URL on a
-// new line by itself if there is word stretching.
-
 func (i Image) String() string {
 	done := "0"
 	if i.Done {
