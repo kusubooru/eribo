@@ -44,6 +44,7 @@ func main() {
 		password    = flag.String("password", "", "websocket address to connect")
 		character   = flag.String("character", "", "websocket address to connect")
 		owner       = flag.String("owner", "Ryuunosuke Akasaka", "character name of the bot's owner")
+		editor      = flag.String("editor", "", "character name of editor. An editor can use owner commands")
 		dataSource  = flag.String("datasource", "", "MySQL datasource")
 		joinRooms   = flag.String("join", "", "open private `rooms` to join in JSON format e.g. "+`-join '["Room 1", "Room 2"]'`)
 		statusMsg   = flag.String("status", "", "status message to be displayed")
@@ -171,6 +172,7 @@ func main() {
 		*character,
 		botVersion,
 		*owner,
+		*editor,
 		lowNames,
 		mappingList,
 		store,
@@ -331,6 +333,7 @@ func handleMessages(
 	botName string,
 	botVersion string,
 	owner string,
+	editor string,
 	lowNames []string,
 	mappingList *flist.MappingList,
 	store eribo.Store,
@@ -388,7 +391,7 @@ func handleMessages(
 			if err := gatherFeedback(c, store, pri); err != nil {
 				log.Println("gather feedback err:", err)
 			}
-			respondPrivOwner(c, store, pri, channelMap, botName, botVersion, owner)
+			respondPrivOwner(c, store, pri, channelMap, botName, botVersion, owner, editor)
 		case ors := <-orsch:
 			flist.SortChannelsByTitle(ors.Channels)
 			for _, title := range roomTitles {
@@ -626,8 +629,8 @@ func atoiFirstArg(args []string, def int) int {
 	return n
 }
 
-func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channelMap *eribo.ChannelMap, botName, botVersion, owner string) {
-	if pri.Character != owner {
+func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channelMap *eribo.ChannelMap, botName, botVersion, owner, editor string) {
+	if pri.Character != owner && pri.Character != editor {
 		return
 	}
 
