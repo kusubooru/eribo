@@ -137,7 +137,7 @@ func (t *Targets) Scan(value interface{}) error {
 
 type Store interface {
 	AddMessageWithURLs(m *Message, urls []string) error
-	GetImages(limit, offset int, reverse bool) ([]*Image, error)
+	GetImages(limit, offset int, reverse, filterDone bool) ([]*Image, error)
 	ToggleImageDone(id int64) error
 	SetImageKuid(id int64, kuid int) error
 

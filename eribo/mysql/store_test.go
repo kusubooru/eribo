@@ -26,7 +26,7 @@ func TestAddMessageWithURLs(t *testing.T) {
 		t.Fatal("AddMessageWithURLs failed:", err)
 	}
 
-	have, err := s.GetImages(5, 0, false)
+	have, err := s.GetImages(5, 0, false, false)
 	if err != nil {
 		t.Fatal("GetImages failed:", err)
 	}
@@ -64,7 +64,7 @@ func TestGetImages(t *testing.T) {
 		t.Fatal("AddMessageWithURLs second failed:", err)
 	}
 
-	have, err := s.GetImages(5, 0, true)
+	have, err := s.GetImages(5, 0, true, false)
 	if err != nil {
 		t.Fatal("GetImages failed:", err)
 	}
@@ -134,7 +134,7 @@ func TestToggleImageDone(t *testing.T) {
 		t.Fatal("toggling image done failed:", err)
 	}
 
-	have, err := s.GetImages(5, 0, false)
+	have, err := s.GetImages(5, 0, false, false)
 	if err != nil {
 		t.Fatal("GetImages failed:", err)
 	}

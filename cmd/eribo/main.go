@@ -681,7 +681,13 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 				reverse = true
 			}
 		}
-		images, err := store.GetImages(limit, offset, reverse)
+		filterDone := false
+		if len(args) > 3 {
+			if args[3] == "filter" {
+				filterDone = true
+			}
+		}
+		images, err := store.GetImages(limit, offset, reverse, filterDone)
 		if err != nil {
 			log.Printf("%v error getting images: %v", cmd, err)
 		}

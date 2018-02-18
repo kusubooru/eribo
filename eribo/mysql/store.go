@@ -66,10 +66,15 @@ func (db *EriboStore) AddMessageWithURLs(m *eribo.Message, urls []string) (err e
 	return nil
 }
 
-func (db *EriboStore) GetImages(limit, offset int, reverse bool) ([]*eribo.Image, error) {
+func (db *EriboStore) GetImages(limit, offset int, reverse, filterDone bool) ([]*eribo.Image, error) {
 	desc := ""
 	if reverse {
 		desc = "DESC"
+	}
+
+	filter := ""
+	if filterDone {
+		filter = " AND img.done = 0 "
 	}
 
 	var query = `
@@ -81,7 +86,7 @@ func (db *EriboStore) GetImages(limit, offset int, reverse bool) ([]*eribo.Image
 	  m.message as "message.message",
 	  m.created as "message.created"
 	FROM images img
-	  JOIN messages m ON img.message_id=m.id
+	  JOIN messages m ON img.message_id=m.id` + filter + `
 	  ORDER BY created ` + desc + ` LIMIT ?, ?`
 
 	images := []*eribo.Image{}
@@ -89,6 +94,31 @@ func (db *EriboStore) GetImages(limit, offset int, reverse bool) ([]*eribo.Image
 		return nil, err
 	}
 	return images, nil
+}
+
+func (db *EriboStore) GetImage(id int64) (*eribo.Image, error) {
+	img := &eribo.Image{}
+	err := db.Tx(func(tx *sqlx.Tx) error {
+		const query = `
+	    SELECT
+	      img.*,
+	      m.id as "message.id",
+	      m.player as "message.player",
+	      m.channel as "message.channel",
+	      m.message as "message.message",
+	      m.created as "message.created"
+	    FROM images img
+	      JOIN messages m ON img.message_id=m.id
+	      WHERE img.id = ?`
+		if err := tx.Get(img, query, id); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return img, nil
 }
 
 func (db *EriboStore) ToggleImageDone(id int64) (err error) {
@@ -119,31 +149,6 @@ func (db *EriboStore) ToggleImageDone(id int64) (err error) {
 	}
 
 	return nil
-}
-
-func (db *EriboStore) GetImage(id int64) (*eribo.Image, error) {
-	img := &eribo.Image{}
-	err := db.Tx(func(tx *sqlx.Tx) error {
-		const query = `
-	    SELECT
-	      img.*,
-	      m.id as "message.id",
-	      m.player as "message.player",
-	      m.channel as "message.channel",
-	      m.message as "message.message",
-	      m.created as "message.created"
-	    FROM images img
-	      JOIN messages m ON img.message_id=m.id
-	      WHERE img.id = ?`
-		if err := tx.Get(img, query, id); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return img, nil
 }
 
 func (db *EriboStore) SetImageKuid(id int64, kuid int) error {
