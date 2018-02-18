@@ -102,8 +102,37 @@ func TestGetImages(t *testing.T) {
 	}
 }
 
-// TODO(jin): implement AddImage and use that instead of AddMessageWithURLs for
-// cleaner tests.
+func TestSetImageKuid(t *testing.T) {
+	s := setup(t)
+	defer teardown(t, s)
+
+	created := time.Now().UTC().Truncate(timeTruncate)
+	m := &eribo.Message{Channel: "foo", Player: "bar", Message: "baz", Created: created}
+	urls := []string{"http://url"}
+	if err := s.AddMessageWithURLs(m, urls); err != nil {
+		t.Fatal("AddMessageWithURLs failed:", err)
+	}
+
+	if err := s.SetImageKuid(1, 1337); err != nil {
+		t.Fatal("setting image kuid failed:", err)
+	}
+
+	got, err := s.GetImage(1)
+	if err != nil {
+		t.Fatal("getting image failed:", err)
+	}
+
+	want := &eribo.Image{
+		ID:        1,
+		URL:       "http://url",
+		Done:      true,
+		Kuid:      1337,
+		Created:   created,
+		MessageID: 1,
+		Message:   &eribo.Message{ID: 1, Channel: "foo", Player: "bar", Message: "baz", Created: created},
+	}
+	deepEqual(t, got, want, "setting image kuid")
+}
 
 func TestToggleImageDone(t *testing.T) {
 	s := setup(t)
@@ -147,6 +176,16 @@ func TestToggleImageDone(t *testing.T) {
 		data, _ = json.Marshal(want)
 		fmt.Println(string(data))
 		t.Fatalf("ToggleImageDone = \nhave: %#v\nwant: %#v", have, want)
+	}
+}
+
+func deepEqual(t *testing.T, have, want interface{}, message string) {
+	if !reflect.DeepEqual(have, want) {
+		data, _ := json.Marshal(have)
+		fmt.Println(string(data))
+		data, _ = json.Marshal(want)
+		fmt.Println(string(data))
+		t.Fatalf("%s\nhave: %#v\nwant: %#v", message, have, want)
 	}
 }
 

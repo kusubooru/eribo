@@ -655,6 +655,24 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		if err := store.ToggleImageDone(id); err != nil {
 			msg = fmt.Sprintf("error toggling image done: %v", err)
 		}
+	case "!imagekuid":
+		if len(args) < 2 {
+			msg = "no image id and kuid provided"
+			break
+		}
+		id, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			msg = fmt.Sprintf("error parsing id: %v", err)
+			break
+		}
+		kuid, err := strconv.Atoi(args[1])
+		if err != nil {
+			msg = fmt.Sprintf("error parsing kuid: %v", err)
+			break
+		}
+		if err := store.SetImageKuid(id, kuid); err != nil {
+			msg = fmt.Sprintf("error setting image kuid: %v", err)
+		}
 	case "!images":
 		limit, offset := atoiLimitOffset(args)
 		reverse := false

@@ -4,10 +4,28 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/kusubooru/eribo/eribo"
 )
 
 const timeTruncate = 1 * time.Second
+
+func (db *EriboStore) Tx(fn func(*sqlx.Tx) error) (err error) {
+	tx, err := db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			if rerr := tx.Rollback(); rerr != nil {
+				err = fmt.Errorf("rollback failed: %v: %v", rerr, err)
+			}
+			return
+		}
+		err = tx.Commit()
+	}()
+	return fn(tx)
+}
 
 func (db *EriboStore) AddMessageWithURLs(m *eribo.Message, urls []string) (err error) {
 	if (m.Created == time.Time{}) {
@@ -27,8 +45,8 @@ func (db *EriboStore) AddMessageWithURLs(m *eribo.Message, urls []string) (err e
 		err = tx.Commit()
 	}()
 
-	const query = `INSERT INTO messages(message, player, channel, created) VALUES (?, ?, ?, ?)`
-	r, err := tx.Exec(query, m.Message, m.Player, m.Channel, m.Created)
+	const insertMessage = `INSERT INTO messages(message, player, channel, created) VALUES (?, ?, ?, ?)`
+	r, err := tx.Exec(insertMessage, m.Message, m.Player, m.Channel, m.Created)
 	if err != nil {
 		return err
 	}
@@ -38,8 +56,9 @@ func (db *EriboStore) AddMessageWithURLs(m *eribo.Message, urls []string) (err e
 		return err
 	}
 
+	const insertImage = "INSERT INTO images(url, done, kuid, message_id, created) VALUES (?, ?, ?, ?, ?)"
 	for _, u := range urls {
-		_, err := tx.Exec("INSERT INTO images(url, done, message_id, created) VALUES (?, ?, ?, ?)", u, false, messageID, m.Created)
+		_, err := tx.Exec(insertImage, u, false, 0, messageID, m.Created)
 		if err != nil {
 			return err
 		}
@@ -100,6 +119,45 @@ func (db *EriboStore) ToggleImageDone(id int64) (err error) {
 	}
 
 	return nil
+}
+
+func (db *EriboStore) GetImage(id int64) (*eribo.Image, error) {
+	img := &eribo.Image{}
+	err := db.Tx(func(tx *sqlx.Tx) error {
+		const query = `
+	    SELECT
+	      img.*,
+	      m.id as "message.id",
+	      m.player as "message.player",
+	      m.channel as "message.channel",
+	      m.message as "message.message",
+	      m.created as "message.created"
+	    FROM images img
+	      JOIN messages m ON img.message_id=m.id
+	      WHERE img.id = ?`
+		if err := tx.Get(img, query, id); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return img, nil
+}
+
+func (db *EriboStore) SetImageKuid(id int64, kuid int) error {
+	done := false
+	if kuid != 0 {
+		done = true
+	}
+	return db.Tx(func(tx *sqlx.Tx) error {
+		const query = `UPDATE images SET kuid = ?, done = ? WHERE id = ?`
+		if _, err := tx.Exec(query, kuid, done, id); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (db *EriboStore) GetAllFeedback(limit, offset int) ([]*eribo.Feedback, error) {

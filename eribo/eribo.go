@@ -33,17 +33,31 @@ type Image struct {
 	ID        int64
 	URL       string
 	Done      bool
+	Kuid      int
 	Created   time.Time
 	MessageID int64    `db:"message_id"`
 	Message   *Message `db:"message"`
 }
+
+// TODO(jin): Chat detects word stretching on URLS with /blah/ parts of more
+// than 49 character and it does not print the URL. Maybe print the URL on a
+// new line by itself if there is word stretching.
 
 func (i Image) String() string {
 	done := "0"
 	if i.Done {
 		done = "1"
 	}
-	return fmt.Sprintf("%6d: %v> %s by %s: [url]%s[/url]", i.ID, i.Created.Format(time.Stamp), done, i.Message.Player, i.URL)
+	player := "unknown player nil message"
+	if i.Message != nil {
+		player = i.Message.Player
+	}
+	kuid := ""
+	if i.Kuid != 0 {
+		kuid = fmt.Sprintf(" [url=https://kusubooru.com/post/view/%d]done[/url]", i.Kuid)
+	}
+	return fmt.Sprintf("%6d: %v> %s by %s: [url=%s]link[/url]%s",
+		i.ID, i.Created.Format(time.Stamp), done, player, i.URL, kuid)
 }
 
 type Message struct {
@@ -129,6 +143,7 @@ type Store interface {
 	AddMessageWithURLs(m *Message, urls []string) error
 	GetImages(limit, offset int, reverse bool) ([]*Image, error)
 	ToggleImageDone(id int64) error
+	SetImageKuid(id int64, kuid int) error
 
 	AddFeedback(f *Feedback) error
 	GetAllFeedback(limit, offset int) ([]*Feedback, error)
