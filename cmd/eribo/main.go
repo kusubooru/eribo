@@ -629,6 +629,50 @@ func atoiFirstArg(args []string, def int) int {
 	return n
 }
 
+func argsContain(args []string, s string) ([]string, bool) {
+	for i := range args {
+		if args[i] == s {
+			args = append(args[:i], args[i+1:]...)
+			return args, true
+		}
+	}
+	return args, false
+}
+
+func argsPopAtoi(args []string) (int, []string, bool) {
+	return argsPopAtoiDefaultOk(args, 0)
+}
+
+func argsPopAtoiDefault(args []string, defaultValue int) (int, []string) {
+	n, args, _ := argsPopAtoiDefaultOk(args, defaultValue)
+	return n, args
+}
+
+func argsPopAtoiDefaultOk(args []string, defaultValue int) (int, []string, bool) {
+	for i := range args {
+		n, err := strconv.Atoi(args[i])
+		if err != nil {
+			continue
+		}
+		args = append(args[:i], args[i+1:]...)
+		return n, args, true
+	}
+	return defaultValue, args, false
+}
+
+func getImagesString(store eribo.Store, limit, offset int, reverse, filterDone bool, cmd string) string {
+	images, err := store.GetImages(limit, offset, reverse, filterDone)
+	if err != nil {
+		return fmt.Sprintf("%v error getting images: %v", cmd, err)
+	}
+	var b strings.Builder
+	fmt.Fprintln(&b)
+	for _, img := range images {
+		fmt.Fprintf(&b, "%v\n", img)
+	}
+	return b.String()
+}
+
 func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channelMap *eribo.ChannelMap, botName, botVersion, owner, editor string) {
 	if pri.Character != owner && pri.Character != editor {
 		return
@@ -646,60 +690,38 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		}
 
 	case "!imagedone":
-		if len(args) < 1 {
+		id, _, ok := argsPopAtoi(args)
+		if !ok {
 			msg = "no image id provided"
 			break
 		}
-		id, err := strconv.ParseInt(args[0], 10, 64)
-		if err != nil {
-			msg = fmt.Sprintf("error parsing id: %v", err)
-			break
-		}
-		if err := store.ToggleImageDone(id); err != nil {
+		if err := store.ToggleImageDone(int64(id)); err != nil {
 			msg = fmt.Sprintf("error toggling image done: %v", err)
 		}
-	case "!imagekuid":
-		if len(args) < 2 {
-			msg = "no image id and kuid provided"
+	case "!kuid":
+		id, args, ok := argsPopAtoi(args)
+		if !ok {
+			msg = "no image id provided"
 			break
 		}
-		id, err := strconv.ParseInt(args[0], 10, 64)
-		if err != nil {
-			msg = fmt.Sprintf("error parsing id: %v", err)
+		kuid, _, ok := argsPopAtoi(args)
+		if !ok {
+			msg = "no kuid provided"
 			break
 		}
-		kuid, err := strconv.Atoi(args[1])
-		if err != nil {
-			msg = fmt.Sprintf("error parsing kuid: %v", err)
-			break
-		}
-		if err := store.SetImageKuid(id, kuid); err != nil {
+		if err := store.SetImageKuid(int64(id), kuid); err != nil {
 			msg = fmt.Sprintf("error setting image kuid: %v", err)
+			break
 		}
+		msg = getImagesString(store, 10, 0, false, true, cmd)
 	case "!images":
-		limit, offset := atoiLimitOffset(args)
-		reverse := false
-		if len(args) > 2 {
-			if args[2] == "desc" {
-				reverse = true
-			}
-		}
-		filterDone := false
-		if len(args) > 3 {
-			if args[3] == "filter" {
-				filterDone = true
-			}
-		}
-		images, err := store.GetImages(limit, offset, reverse, filterDone)
-		if err != nil {
-			log.Printf("%v error getting images: %v", cmd, err)
-		}
-		var b strings.Builder
-		fmt.Fprintln(&b)
-		for _, img := range images {
-			fmt.Fprintf(&b, "%v\n", img)
-		}
-		msg = b.String()
+		args, reverse := argsContain(args, "desc")
+		args, filterDone := argsContain(args, "filter")
+
+		limit, args := argsPopAtoiDefault(args, 10)
+		offset, _ := argsPopAtoiDefault(args, 0)
+
+		msg = getImagesString(store, limit, offset, reverse, filterDone, cmd)
 	case "!simtktools":
 		rolls := atoiFirstArg(args, 100)
 		table := &loot.Table{}
