@@ -18,13 +18,13 @@ func NewLoth(p *Player, duration time.Duration) *Loth {
 }
 
 func (l Loth) TimeLeft() string {
-	d := time.Until(time.Time(l.Expires))
+	d := time.Until(l.Expires)
 	rounded := time.Duration(d.Nanoseconds()/time.Second.Nanoseconds()) * time.Second
 	return rounded.String()
 }
 
 func (l Loth) Expired() bool {
-	return time.Now().After(time.Time(l.Expires))
+	return time.Now().After(l.Expires)
 }
 
 // Store
