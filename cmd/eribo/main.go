@@ -452,7 +452,7 @@ func handleMessages(
 			}(ticket)
 		case sta := <-stach:
 			name := sta.Character
-			newStatus := flist.Status(sta.Status)
+			newStatus := sta.Status
 			player, _ := channelMap.GetPlayer(name)
 			if player != nil && player.Role == "" && !player.Status.IsActive() && newStatus.IsActive() {
 				//fmt.Printf("STA changed to active for char %q\n", name)
