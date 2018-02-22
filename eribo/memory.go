@@ -170,7 +170,7 @@ func (c *ChannelMap) GetPlayer(playerName string) (*Player, []string) {
 	return player, channels
 }
 
-func (c ChannelMap) GetActivePlayers() *PlayerMap {
+func (c *ChannelMap) GetActivePlayers() *PlayerMap {
 	c.RLock()
 	defer c.RUnlock()
 	actives := NewPlayerMap()
@@ -276,7 +276,7 @@ func randTarget(playerName string, targets []*Player, lowNames []string) *Player
 	return p
 }
 
-func (c ChannelMap) GetChannel(channel string) (*PlayerMap, bool) {
+func (c *ChannelMap) GetChannel(channel string) (*PlayerMap, bool) {
 	c.RLock()
 	defer c.RUnlock()
 	pm, ok := c.m[channel]

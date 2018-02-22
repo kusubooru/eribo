@@ -32,7 +32,7 @@ func (t *Table) Add(item interface{}, weight int) {
 	t.drops = append(t.drops, d)
 }
 
-func (t Table) TotalWeight() int {
+func (t *Table) TotalWeight() int {
 	t.RLock()
 	defer t.RUnlock()
 	var totalWeight int
@@ -42,14 +42,16 @@ func (t Table) TotalWeight() int {
 	return totalWeight
 }
 
-func (t Table) Len() int {
+func (t *Table) Len() int {
+	t.RLock()
+	defer t.RUnlock()
 	if t.drops == nil {
 		return 0
 	}
 	return len(t.drops)
 }
 
-func (t Table) Roll(seed int64) (int, interface{}) {
+func (t *Table) Roll(seed int64) (int, interface{}) {
 	t.RLock()
 	defer t.RUnlock()
 	totalWeight := t.TotalWeight()
@@ -69,7 +71,7 @@ func (t Table) Roll(seed int64) (int, interface{}) {
 	return drop, t.drops[drop].Item
 }
 
-func (t Table) Sim(rolls int) (map[int]int, map[int]float64) {
+func (t *Table) Sim(rolls int) (map[int]int, map[int]float64) {
 	t.RLock()
 	defer t.RUnlock()
 	dropsMap := make(map[int]int, t.Len())
