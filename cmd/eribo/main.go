@@ -718,12 +718,12 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		msg = getImagesString(store, 10, 0, false, true, cmd)
 	case "!images":
 		args, reverse := argsContain(args, "desc")
-		args, filterDone := argsContain(args, "filter")
+		args, showAll := argsContain(args, "all")
 
 		limit, args := argsPopAtoiDefault(args, 10)
 		offset, _ := argsPopAtoiDefault(args, 0)
 
-		msg = getImagesString(store, limit, offset, reverse, filterDone, cmd)
+		msg = getImagesString(store, limit, offset, reverse, !showAll, cmd)
 	case "!simtktools":
 		rolls := atoiFirstArg(args, 100)
 		table := &loot.Table{}
