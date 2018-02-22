@@ -689,7 +689,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 			log.Println("owner changing status:", err)
 		}
 
-	case "!imagedone":
+	case "!done":
 		id, _, ok := argsPopAtoi(args)
 		if !ok {
 			msg = "no image id provided"
@@ -697,7 +697,9 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		}
 		if err := store.ToggleImageDone(int64(id)); err != nil {
 			msg = fmt.Sprintf("error toggling image done: %v", err)
+			break
 		}
+		msg = getImagesString(store, 10, 0, false, true, cmd)
 	case "!kuid":
 		id, args, ok := argsPopAtoi(args)
 		if !ok {
