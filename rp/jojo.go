@@ -1,6 +1,9 @@
 package rp
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type stand struct {
 	Name string
@@ -8,17 +11,18 @@ type stand struct {
 	Desc string
 }
 
-func (st stand) Apply(user string) string {
-	s := fmt.Sprintf("%s's new Stand is ", user)
-	s += fmt.Sprintf("[u]%s[/u] ", clean(st.Name))
-	s += fmt.Sprintf("([i]%s[/i]): ", clean(st.Type))
-	s += fmt.Sprintf("%s", clean(st.Desc))
-	return s
+func (st stand) apply(user string) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s's new Stand is ", user)
+	fmt.Fprintf(&b, "[u]%s[/u] ", clean(st.Name))
+	fmt.Fprintf(&b, "([i]%s[/i]): ", clean(st.Type))
+	fmt.Fprintf(&b, "%s", clean(st.Desc))
+	return b.String()
 }
 
 func RandJojo(user string) string {
 	st := stands[newRand(len(stands))]
-	return st.Apply(user)
+	return st.apply(user)
 }
 
 // Menacing BBCode:
