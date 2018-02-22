@@ -195,7 +195,7 @@ type animeOp struct {
 }
 
 func (j animeOp) Apply() string {
-	return fmt.Sprintf(clean(j.Raw))
+	return clean(j.Raw)
 }
 
 var animeOps = []animeOp{

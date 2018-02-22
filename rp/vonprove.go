@@ -23,7 +23,7 @@ func (v Vonprove) Apply(user string) string {
 	if v.HasUser {
 		return fmt.Sprintf(clean(v.Raw), user)
 	}
-	return fmt.Sprintf(clean(v.Raw))
+	return fmt.Sprint(clean(v.Raw))
 }
 
 func RandVonprove(user string) string {

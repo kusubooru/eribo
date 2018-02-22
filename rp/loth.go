@@ -21,7 +21,7 @@ func Loth(user string, loth *eribo.Loth, isNew bool, targets []*eribo.Player) st
 	case loth == nil:
 		msg := `Unable to find eligible target.`
 
-		return fmt.Sprintf(clean(msg))
+		return clean(msg)
 	case loth != nil && !isNew:
 		msg := `Current 'lee of the hour is %s. Time left is %s.`
 
