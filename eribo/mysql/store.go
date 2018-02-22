@@ -123,7 +123,8 @@ func (db *EriboStore) ToggleImageDone(id int64) (err error) {
 		const query = `SELECT * FROM images WHERE id = ?`
 
 		img := &eribo.Image{}
-		if err := tx.Get(img, query, id); err != nil {
+		err = tx.Get(img, query, id)
+		if err != nil {
 			return err
 		}
 

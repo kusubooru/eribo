@@ -90,8 +90,8 @@ func main() {
 		return
 	}
 	defer func() {
-		if err := c.Close(); err != nil {
-			log.Println("close err:", err)
+		if cerr := c.Close(); cerr != nil {
+			log.Println("close err:", cerr)
 		}
 	}()
 
@@ -133,7 +133,8 @@ func main() {
 	)
 
 	// Login to F-list.
-	if err := c.Identify(*account, *password, *character); err != nil {
+	err = c.Identify(*account, *password, *character)
+	if err != nil {
 		log.Println(err)
 		return
 	}
@@ -144,7 +145,8 @@ func main() {
 	<-idnch
 
 	// Request open private rooms.
-	if err := c.SendORS(); err != nil {
+	err = c.SendORS()
+	if err != nil {
 		log.Println(err)
 		return
 	}
@@ -679,18 +681,18 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 	}
 
 	var msg string
-	cmd, args := eribo.ParseCustomCommand(pri.Message)
+	cmd, cmdArgs := eribo.ParseCustomCommand(pri.Message)
 	switch cmd {
 	case "!version":
 		msg = botVersion
 	case "!status":
-		sta := flist.STA{Status: flist.StatusBusy, StatusMsg: strings.Join(args, " ")}
+		sta := flist.STA{Status: flist.StatusBusy, StatusMsg: strings.Join(cmdArgs, " ")}
 		if err := c.SendCmd(sta); err != nil {
 			log.Println("owner changing status:", err)
 		}
 
 	case "!done":
-		id, _, ok := argsPopAtoi(args)
+		id, _, ok := argsPopAtoi(cmdArgs)
 		if !ok {
 			msg = "no image id provided"
 			break
@@ -701,7 +703,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		}
 		msg = getImagesString(store, 10, 0, false, true, cmd)
 	case "!kuid":
-		id, args, ok := argsPopAtoi(args)
+		id, args, ok := argsPopAtoi(cmdArgs)
 		if !ok {
 			msg = "no image id provided"
 			break
@@ -717,7 +719,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		}
 		msg = getImagesString(store, 10, 0, false, true, cmd)
 	case "!images":
-		args, reverse := argsContain(args, "desc")
+		args, reverse := argsContain(cmdArgs, "desc")
 		args, showAll := argsContain(args, "all")
 
 		limit, args := argsPopAtoiDefault(args, 10)
@@ -725,7 +727,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 
 		msg = getImagesString(store, limit, offset, reverse, !showAll, cmd)
 	case "!simtktools":
-		rolls := atoiFirstArg(args, 100)
+		rolls := atoiFirstArg(cmdArgs, 100)
 		table := &loot.Table{}
 		for _, t := range rp.Tktools() {
 			table.Add(t, t.Weight)
@@ -738,11 +740,11 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		}
 		msg = buf.String()
 	case "!simtietools":
-		rolls := atoiFirstArg(args, 100)
+		rolls := atoiFirstArg(cmdArgs, 100)
 		table := &loot.Table{}
 		toolType := ""
-		if len(args) > 1 {
-			toolType = args[1]
+		if len(cmdArgs) > 1 {
+			toolType = cmdArgs[1]
 		}
 		for _, t := range rp.Tietools(toolType) {
 			table.Add(t, t.Quality.Weight())
@@ -767,7 +769,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 	case "!uptime":
 		msg = fmt.Sprintln(time.Since(startTime).Round(time.Second))
 	case "!feed":
-		limit, offset := atoiLimitOffset(args)
+		limit, offset := atoiLimitOffset(cmdArgs)
 		feedback, err := store.GetRecentFeedback(limit, offset)
 		if err != nil {
 			log.Printf("%v error getting feedback: %v", cmd, err)
@@ -779,7 +781,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		}
 		msg = buf.String()
 	case "!cmdlogs":
-		limit, offset := atoiLimitOffset(args)
+		limit, offset := atoiLimitOffset(cmdArgs)
 		logs, err := store.GetRecentCmdLogs(limit, offset)
 		if err != nil {
 			log.Printf("%v error getting cmd logs: %v", cmd, err)
@@ -791,7 +793,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		}
 		msg = buf.String()
 	case "!lothlogs":
-		limit, offset := atoiLimitOffset(args)
+		limit, offset := atoiLimitOffset(cmdArgs)
 		logs, err := store.GetRecentLothLogs(limit, offset)
 		if err != nil {
 			log.Printf("%v error getting loth logs: %v", cmd, err)
