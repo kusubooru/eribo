@@ -110,10 +110,7 @@ func (db *EriboStore) GetImage(id int64) (*eribo.Image, error) {
 	    FROM images img
 	      JOIN messages m ON img.message_id=m.id
 	      WHERE img.id = ?`
-		if err := tx.Get(img, query, id); err != nil {
-			return err
-		}
-		return nil
+		return tx.Get(img, query, id)
 	})
 	if err != nil {
 		return nil, err
@@ -122,33 +119,18 @@ func (db *EriboStore) GetImage(id int64) (*eribo.Image, error) {
 }
 
 func (db *EriboStore) ToggleImageDone(id int64) (err error) {
-	tx, err := db.Beginx()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			if rerr := tx.Rollback(); rerr != nil {
-				err = fmt.Errorf("rollback failed: %v: %v", rerr, err)
-			}
-			return
+	return db.Tx(func(tx *sqlx.Tx) error {
+		const query = `SELECT * FROM images WHERE id = ?`
+
+		img := &eribo.Image{}
+		if err := tx.Get(img, query, id); err != nil {
+			return err
 		}
-		err = tx.Commit()
-	}()
 
-	const query = `SELECT * FROM images WHERE id = ?`
-
-	img := &eribo.Image{}
-	if err := tx.Get(img, query, id); err != nil {
+		const update = `update images set done = ? where id = ?`
+		_, err = tx.Exec(update, !img.Done, id)
 		return err
-	}
-
-	const update = `update images set done = ? where id = ?`
-	if _, err := tx.Exec(update, !img.Done, id); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func (db *EriboStore) SetImageKuid(id int64, kuid int) error {
@@ -158,10 +140,8 @@ func (db *EriboStore) SetImageKuid(id int64, kuid int) error {
 	}
 	return db.Tx(func(tx *sqlx.Tx) error {
 		const query = `UPDATE images SET kuid = ?, done = ? WHERE id = ?`
-		if _, err := tx.Exec(query, kuid, done, id); err != nil {
-			return err
-		}
-		return nil
+		_, err := tx.Exec(query, kuid, done, id)
+		return err
 	})
 }
 
