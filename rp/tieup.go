@@ -108,4 +108,11 @@ var tieUps = []string{
 	their [u]entire body[/u] exposed and accessible. It whirs, performing some
 	additional calculations, then it produces some precisely-measured silken
 	cords and uses them to tie their toes to the top of the stocks.`,
+
+	`/me starts producing very rapidly a colorful, spiral-shaped, plastic
+	material which forms a giant slinky and then launches it upwards, in an
+	arc, perfectly calculated to fall right on %s, trapping them in the middle
+	and leaving only their [u]head[/u] and [u]feet[/u] exposed. The victim
+	quickly finds out that while they are able to twist and wriggle, they are
+	totally unable to escape on their own.`,
 }
