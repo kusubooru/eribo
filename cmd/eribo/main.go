@@ -589,6 +589,23 @@ func respond(
 			log.Printf("error logging Loth: %v, isNew: %v, Targets: %v: %v", loth, isNew, targets, err)
 		}
 		msg = rp.Loth(m.Character, loth, isNew, targets)
+	case eribo.CmdTicklizer:
+		if len(args) == 0 {
+			msg = rp.Ticklizer(m.Character, owner, botName)
+			break
+		}
+		name := args[0]
+		players := channelMap.Find(name, m.Channel)
+		if len(players) == 0 {
+			msg = rp.TicklizerNotFound(m.Character, owner, botName)
+			break
+		}
+		if len(players) > 1 {
+			msg = rp.TicklizerConfused(m.Character, owner, botName)
+			break
+		}
+		targetName := players[0].Name
+		msg = rp.Ticklizer(targetName, owner, botName)
 	}
 
 	if msg != "" {

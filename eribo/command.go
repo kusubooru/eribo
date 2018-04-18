@@ -20,6 +20,7 @@ const (
 	CmdDadJoke
 	CmdTietool
 	CmdMuffin
+	CmdTicklizer
 )
 
 func (c Command) String() string {
@@ -46,6 +47,8 @@ func (c Command) String() string {
 		return "!tietool"
 	case CmdMuffin:
 		return "!muffin"
+	case CmdTicklizer:
+		return "!ticklizer"
 	}
 }
 
@@ -73,6 +76,8 @@ func makeCommand(s string) Command {
 		return CmdTietool
 	case "!muffin":
 		return CmdMuffin
+	case "!ticklizer":
+		return CmdTicklizer
 	}
 }
 

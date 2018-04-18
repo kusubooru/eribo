@@ -2,6 +2,7 @@ package eribo
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -170,6 +171,13 @@ func (c *ChannelMap) GetPlayer(playerName string) (*Player, []string) {
 	return player, channels
 }
 
+func (c *ChannelMap) PlayerMap(channel string) (*PlayerMap, bool) {
+	c.RLock()
+	defer c.RUnlock()
+	pm, ok := c.m[channel]
+	return pm, ok
+}
+
 func (c *ChannelMap) GetActivePlayers() *PlayerMap {
 	c.RLock()
 	defer c.RUnlock()
@@ -281,4 +289,20 @@ func (c *ChannelMap) GetChannel(channel string) (*PlayerMap, bool) {
 	defer c.RUnlock()
 	pm, ok := c.m[channel]
 	return pm, ok
+}
+
+func (c *ChannelMap) Find(playerName, channelName string) []*Player {
+	targets := make([]*Player, 0)
+	pm, ok := c.PlayerMap(channelName)
+	if !ok {
+		return targets
+	}
+	pm.ForEach(func(name string, p *Player) {
+		c.RLock()
+		defer c.RUnlock()
+		if strings.HasPrefix(strings.ToLower(p.Name), strings.ToLower(playerName)) {
+			targets = append(targets, p)
+		}
+	})
+	return targets
 }
