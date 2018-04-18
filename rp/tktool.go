@@ -366,6 +366,12 @@ var tktools = []Tktool{
 		Emote:   tmplMust(`/me hands {{.User}} a {{.Tool}}.`),
 	},
 	{
+		Name:    "[Bear Claw Backscratcher]",
+		Quality: Common,
+		Weight:  6,
+		Emote:   tmplMust(`/me hands {{.User}} a {{.Tool}}.`),
+	},
+	{
 		Name:    "[Battery Operated Backscratcher]",
 		Quality: Uncommon,
 		Weight:  8,
