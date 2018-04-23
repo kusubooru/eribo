@@ -594,7 +594,7 @@ func respond(
 			msg = rp.Ticklizer(m.Character, owner, botName)
 			break
 		}
-		name := args[0]
+		name := strings.Join(args, " ")
 		players := channelMap.Find(name, m.Channel)
 		if len(players) == 0 {
 			msg = rp.TicklizerNotFound(m.Character, owner, botName)
