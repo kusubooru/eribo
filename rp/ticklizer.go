@@ -18,6 +18,7 @@ type bodyPart struct {
 
 var bodyParts = []bodyPart{
 	{"armpits", true},
+	{"underarms", true},
 	{"ribs", true},
 	{"sides", true},
 	{"feet", true},
