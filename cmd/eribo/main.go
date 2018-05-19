@@ -546,8 +546,6 @@ func respond(
 	switch cmd {
 	case eribo.CmdMuffin:
 		msg = rp.RandMuffin(m.Character)
-	case eribo.CmdTieup:
-		msg = rp.RandTieUp(m.Character)
 	case eribo.CmdTomato:
 		msg = rp.Tomato(m.Character, owner)
 	case eribo.CmdTktool:
@@ -589,6 +587,37 @@ func respond(
 			log.Printf("error logging Loth: %v, isNew: %v, Targets: %v: %v", loth, isNew, targets, err)
 		}
 		msg = rp.Loth(m.Character, loth, isNew, targets)
+	case eribo.CmdTieup:
+		if len(args) == 0 {
+			msg = rp.RandTieUp(m.Character, owner, botName, "")
+			break
+		}
+		nameArgs := args
+		filter := ""
+		f := args[len(args)-1:]
+		if len(f) == 1 {
+			if rp.InTieUpTags(f[0]) {
+				nameArgs = args[:len(args)-1]
+				filter = f[0]
+			}
+		}
+
+		if len(nameArgs) == 0 {
+			msg = rp.RandTieUp(m.Character, owner, botName, filter)
+			break
+		}
+		name := strings.Join(nameArgs, " ")
+		players := channelMap.Find(name, m.Channel)
+		if len(players) == 0 {
+			msg = rp.RandTieUpNotFound(m.Character, owner, botName, filter)
+			break
+		}
+		if len(players) > 1 {
+			msg = rp.RandTieUpConfused(m.Character, owner, botName, filter)
+			break
+		}
+		targetName := players[0].Name
+		msg = rp.RandTieUp(targetName, owner, botName, filter)
 	case eribo.CmdTicklizer:
 		if len(args) == 0 {
 			msg = rp.Ticklizer(m.Character, owner, botName, "")
