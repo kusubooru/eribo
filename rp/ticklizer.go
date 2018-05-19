@@ -86,14 +86,17 @@ func ticklizer(name, owner, botName string, tcase ticklizerCase, filter string) 
 		format = `/me found more than one targets. It got confused and zapped
 		%s instead with the ticklizer beam, hitting their [u]%s[/u] making, %s
 		ten times more ticklish!`
+		return fmt.Sprintf(clean(format), name, part.name, itOrThem)
 	case notFound:
 		format = `/me could not find its target. It got confused and zapped %s
 		instead with the ticklizer beam, hitting their [u]%s[/u], making %s ten
 		times more ticklish!`
+		return fmt.Sprintf(clean(format), name, part.name, itOrThem)
 	case forbidden:
 		format = `/me is forbidden from hitting that target. It turns and zaps
 		%s instead with the ticklizer beam, hitting their [u]%s[/u], making %s
 		ten times more ticklish!`
+		return fmt.Sprintf(clean(format), name, part.name, itOrThem)
 	default:
 		if hasFilter {
 			filterMsg = "concentrates its aim and"
