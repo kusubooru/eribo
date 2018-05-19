@@ -591,21 +591,35 @@ func respond(
 		msg = rp.Loth(m.Character, loth, isNew, targets)
 	case eribo.CmdTicklizer:
 		if len(args) == 0 {
-			msg = rp.Ticklizer(m.Character, owner, botName)
+			msg = rp.Ticklizer(m.Character, owner, botName, "")
 			break
 		}
-		name := strings.Join(args, " ")
+		nameArgs := args
+		filter := ""
+		f := args[len(args)-1:]
+		if len(f) == 1 {
+			if rp.InTicklizerFilters(f[0]) {
+				nameArgs = args[:len(args)-1]
+				filter = f[0]
+			}
+		}
+
+		if len(nameArgs) == 0 {
+			msg = rp.Ticklizer(m.Character, owner, botName, filter)
+			break
+		}
+		name := strings.Join(nameArgs, " ")
 		players := channelMap.Find(name, m.Channel)
 		if len(players) == 0 {
-			msg = rp.TicklizerNotFound(m.Character, owner, botName)
+			msg = rp.TicklizerNotFound(m.Character, owner, botName, filter)
 			break
 		}
 		if len(players) > 1 {
-			msg = rp.TicklizerConfused(m.Character, owner, botName)
+			msg = rp.TicklizerConfused(m.Character, owner, botName, filter)
 			break
 		}
 		targetName := players[0].Name
-		msg = rp.Ticklizer(targetName, owner, botName)
+		msg = rp.Ticklizer(targetName, owner, botName, filter)
 	}
 
 	if msg != "" {
