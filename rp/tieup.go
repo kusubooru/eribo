@@ -242,7 +242,7 @@ var tieUps = []tieUp{
 		and wriggle, they are totally unable to escape on their own.`,
 	},
 	{
-		tags: []string{"thighs", "ub"},
+		tags: []string{"thighs", "ub", "matrix", "goo"},
 		msg: `/me unveils two goo guns and does a Matrix dive in slow motion,
 		firing at %s. Goo splatters against their wrists, pinning them against
 		the wall with their arms outstretched to either-side. A series of
@@ -258,7 +258,7 @@ var tieUps = []tieUp{
 		post before tying them in place with rope too.`,
 	},
 	{
-		tags: []string{"ub"},
+		tags: []string{"ub", "cannon"},
 		msg: `/me pushes in a large cannon and lights the fuse. KA-BOOM! It
 		fires a wide net at %s which wraps around them several times,
 		covering them from their shoulders to their knees and pinning their
