@@ -7,9 +7,9 @@ import (
 
 func TestTieUps(t *testing.T) {
 	for _, tt := range tieUps {
-		checkMePrefix(t, tt)
-		checkBBCode(t, tt)
-		checkVerbCount(t, tt, "%s", 1)
+		checkMePrefix(t, tt.msg)
+		checkBBCode(t, tt.msg)
+		checkVerbCount(t, tt.msg, "%s", 1)
 	}
 }
 

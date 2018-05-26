@@ -223,6 +223,72 @@ var tietools = []Tietool{
 		Quality: Legendary,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
+	{
+		Name:    `[Bondage Yoke]`,
+		Quality: Uncommon,
+		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. It's made of
+		aluminum, with padded leather lining the neck and wrist restraints.`),
+	},
+	{
+		Name:    `[Bolas]`,
+		Quality: Uncommon,
+		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. The soft, cotton
+		rope has two padded weights on either end.`)},
+	{
+		Name:    `[Panel Gag Harness]`,
+		Quality: Uncommon,
+		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. It comes with an
+		optional padlock if needed to secure in place.`)},
+	{
+		Name:    `[Green Goo Ball]`,
+		Quality: Common,
+		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}, and wipes the
+		excess off on the side of a couch. It's very sticky!`)},
+	{
+		Name:    `[Red Goo Ball]`,
+		Quality: Common,
+		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}, and wipes the
+		excess off on the back of someone's shirt. It's very sticky and
+		unusually warm!`),
+	},
+	{
+		Name:    `[Silk Sashes]`,
+		Quality: Common,
+		Desc: tmplMust(`/me hands {{.User}} several sturdy {{.Tool}}. Say
+		that five times fast.`)},
+	{
+		Name:    `[Eyeless Balaclava]`,
+		Quality: Uncommon,
+		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. There is only a
+		hole cut out for the mouth.`)},
+	{
+		Name:    `[Upperbody Posture Brace]`,
+		Quality: Rare,
+		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. It's far more rigid
+		and restrictive than usual.`)},
+	{
+		Name:    `[Knee Brace]`,
+		Quality: Rare,
+		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. It's made of steel
+		and doesn't bend.`)},
+	{
+		Name:    `[Invisible Straitjacket]`,
+		Quality: Epic,
+		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}, maybe? It's hard to
+		see if anything's actually there.`)},
+	{
+		Name:    `[VonVitae-Seeking Bondage Mittens]`,
+		Quality: Legendary,
+		Desc: tmplMust(`/me hands {{.User}} a pair of {{.Tool}}. Push the
+		button on the side and they'll seek out their pre-programmed target.`),
+	},
+	{
+		Name:    `[Paralysis Cattle Prod]`,
+		Quality: Epic,
+		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}} with a full battery.
+		Instead of a painful shock the afflicted area is paralyzed for a few
+		minutes.`),
+	},
 }
 
 var tietoolsHard = []Tietool{

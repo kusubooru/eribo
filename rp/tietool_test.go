@@ -2,6 +2,7 @@ package rp
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -43,5 +44,21 @@ rare
 	}
 	if got := tool; !reflect.DeepEqual(got, want) {
 		t.Errorf("UnmarshalText \nhave: %#v\nwant: %#v", got, want)
+	}
+}
+
+func TestTietoolsApply(t *testing.T) {
+	user := "bob"
+	for _, tool := range tietools {
+		msg, err := tool.Apply(user)
+		if err != nil {
+			t.Fatalf("applying tool %v, returned err: %v", tool, err)
+		}
+		if !strings.Contains(msg, user) {
+			t.Errorf("applying user %q on tool %+v, message = %q, want user in message", user, tool, msg)
+		}
+		if !strings.Contains(msg, tool.Name) {
+			t.Errorf("applying user %q on tool %+v, message = %q, want %s in message", user, tool, msg, tool.Name)
+		}
 	}
 }

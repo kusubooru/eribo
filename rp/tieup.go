@@ -241,4 +241,52 @@ var tieUps = []tieUp{
 		exposed. The victim quickly finds out that while they are able to twist
 		and wriggle, they are totally unable to escape on their own.`,
 	},
+	{
+		tags: []string{"thighs", "ub"},
+		msg: `/me unveils two goo guns and does a Matrix dive in slow motion,
+		firing at %s. Goo splatters against their wrists, pinning them against
+		the wall with their arms outstretched to either-side. A series of
+		rapid-fire shots coats the victim's calves against the wall as well.
+		Their upperbody is extremely vulnerable along with their thighs.`,
+	},
+	{
+		tags: []string{"feet", "scarecrow"},
+		msg: `/me is ready to start a farm, but the most important part is
+		missing: a Scarecrow! It grabs %s and hoists them up to a cross-shaped
+		piece of wood, tying them against it with rope around their arms and
+		waist. It also pulls their feet back and crosses them behind the wooden
+		post before tying them in place with rope too.`,
+	},
+	{
+		tags: []string{"ub"},
+		msg: `/me pushes in a large cannon and lights the fuse. KA-BOOM! It
+		fires a wide net at %s which wraps around them several times,
+		covering them from their shoulders to their knees and pinning their
+		arms to their sides. The holes in the net are large enough for anyone
+		to stick their hands through.`,
+	},
+	{
+		tags: []string{"feet"},
+		msg: `/me rushes over in surgeon scrubs. It slaps plaster all over %s's
+		arms and legs before going over the new casts with a blowdryer until
+		they harden. Their upperbody is still quite exposed as well as their
+		feet. They also gets a $35,500 medical bill.`,
+	},
+	{
+		tags: []string{"feet"},
+		msg: `/me puts on their robe and wizard hat. For the first trick, they
+		pull a rabbit out of their hat! For the second trick, they push %s into
+		a box and lock it shut, only their head and feet sticking out. A
+		chainsaw is produced and used to saw down the middle of the box. Oh my
+		god, there's blood everywhere! Just kidding. It passes through cleanly
+		and the box is separated. The victim's body is now split in two. Their
+		feet are utterly helpless.`,
+	},
+	{
+		tags: []string{"ub", "hamster"},
+		msg: `/me squeezes %s into a hamster ball that's far too small for
+		them, forcing them to curl up into a ball. Worse yet, it latches shut
+		from the outside! Don't worry, the ball has plenty of air holes that
+		are big enough for other people to reach into.`,
+	},
 }

@@ -385,4 +385,36 @@ var tktools = []Tktool{
 		Weight:  3,
 		Emote:   tmplMust(`/me hands {{.User}} a {{.Tool}} also known as a pinwheel.`),
 	},
+	{
+
+		Name:    `[Blue Ballpoint Pen]`,
+		Quality: Common,
+		Emote:   tmplMust(`/me hands {{.User}} a {{.Tool}}. It's filled with blue ink.`),
+	},
+	{
+
+		Name:    `[Red Ballpoint Pen]`,
+		Quality: Common,
+		Emote:   tmplMust(`/me hands {{.User}} a {{.Tool}}. It's filled with red ink.`),
+	},
+	{
+		Name:    `[Pink Feather Gel Pen]`,
+		Quality: Uncommon,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Tool}}. It's filled with
+		pink, glittery ink and a fluffy feather on the end.`)},
+	{
+		Name:    `[Rainbow Gel Pen]`,
+		Quality: Rare,
+		Emote: tmplMust(`/me hands {{.User}} a {{.Tool}}. It's filled with
+		several varieties of colors, each one activated by color-coded slide
+		switches on the side.`),
+	},
+	{
+		Name:    `[Fallen Angel Feather Duster]`,
+		Quality: Legendary,
+		Emote: tmplMust(`/me cautiously hands {{.User}} the {{.Tool}}. Its
+		finely-crafted red handle ends in a brilliant display of feathers as
+		black as a moonless midnight. The feathers flutter and twist on their
+		own accord as if seeking out sensitive skin to touch.`),
+	},
 }
