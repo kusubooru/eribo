@@ -266,14 +266,14 @@ var tieUps = []tieUp{
 		to stick their hands through.`,
 	},
 	{
-		tags: []string{"feet"},
+		tags: []string{"feet", "surgeon"},
 		msg: `/me rushes over in surgeon scrubs. It slaps plaster all over %s's
 		arms and legs before going over the new casts with a blowdryer until
 		they harden. Their upperbody is still quite exposed as well as their
 		feet. They also gets a $35,500 medical bill.`,
 	},
 	{
-		tags: []string{"feet"},
+		tags: []string{"feet", "wizard"},
 		msg: `/me puts on their robe and wizard hat. For the first trick, they
 		pull a rabbit out of their hat! For the second trick, they push %s into
 		a box and lock it shut, only their head and feet sticking out. A
