@@ -289,4 +289,9 @@ var tieUps = []tieUp{
 		from the outside! Don't worry, the ball has plenty of air holes that
 		are big enough for other people to reach into.`,
 	},
+	{
+		tags: []string{"ub", "cage"},
+		msg: `/me takes %s's hands behind their back and locks them in a wrist
+		cage, leaving their entire body vulnerable!`,
+	},
 }

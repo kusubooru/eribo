@@ -62,13 +62,13 @@ func (q Quality) Weight() int {
 	default:
 		return 0
 	case Poor:
-		return 500
+		return 400
 	case Common:
-		return 10000
+		return 800
 	case Uncommon:
-		return 1000
+		return 200
 	case Rare:
-		return 100
+		return 50
 	case Epic:
 		return 10
 	case Legendary:

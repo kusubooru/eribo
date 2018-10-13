@@ -88,6 +88,15 @@ func (l CmdLog) String() string {
 	return fmt.Sprintf("%4d: %v by %s - %s %s - %q", l.ID, l.Created.Format(time.Stamp), l.Player, l.Command, l.Args, l.Channel)
 }
 
+type CmdStat struct {
+	Command Command
+	Uses    int
+}
+
+func (s CmdStat) String() string {
+	return fmt.Sprintf("%s: %d", s.Command, s.Uses)
+}
+
 type LothLog struct {
 	ID      int64
 	Issuer  string
@@ -147,6 +156,7 @@ type Store interface {
 
 	AddCmdLog(e *CmdLog) error
 	GetRecentCmdLogs(limit, offset int) ([]*CmdLog, error)
+	CmdStats() ([]*CmdStat, error)
 
 	AddLothLog(*LothLog) error
 	GetRecentLothLogs(limit, offset int) ([]*LothLog, error)

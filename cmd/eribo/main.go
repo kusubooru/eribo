@@ -14,16 +14,14 @@ import (
 	"strings"
 	"time"
 
-	"mvdan.cc/xurls"
-
 	_ "github.com/go-sql-driver/mysql"
-
 	"github.com/kusubooru/eribo/dadjoke"
 	"github.com/kusubooru/eribo/eribo"
 	"github.com/kusubooru/eribo/eribo/mysql"
 	"github.com/kusubooru/eribo/flist"
 	"github.com/kusubooru/eribo/loot"
 	"github.com/kusubooru/eribo/rp"
+	"mvdan.cc/xurls"
 )
 
 var (
@@ -787,20 +785,20 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 
 		msg = getImagesString(store, limit, offset, reverse, !showAll, cmd)
 	case "!simtktools":
-		rolls := atoiFirstArg(cmdArgs, 100)
+		rolls := atoiFirstArg(cmdArgs, 1000)
 		table := &loot.Table{}
 		for _, t := range rp.Tktools() {
-			table.Add(t, t.Weight)
+			table.Add(t, t.Weight())
 		}
 		drops, pr := table.Sim(rolls)
 		var buf bytes.Buffer
 		buf.WriteString("\n")
 		for i, t := range rp.Tktools() {
-			buf.WriteString(fmt.Sprintf("%s = %d, %.1f%%\n", t.Name, drops[i], pr[i]*100.0))
+			buf.WriteString(fmt.Sprintf("%s = %d, %.3f%%\n", t.NameBBCode(), drops[i], pr[i]*100.0))
 		}
 		msg = buf.String()
 	case "!simtietools":
-		rolls := atoiFirstArg(cmdArgs, 100)
+		rolls := atoiFirstArg(cmdArgs, 1000)
 		table := &loot.Table{}
 		toolType := ""
 		if len(cmdArgs) > 1 {
@@ -813,7 +811,7 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		var buf bytes.Buffer
 		buf.WriteString("\n")
 		for i, t := range rp.Tietools(toolType) {
-			buf.WriteString(fmt.Sprintf("%s = %d, %.1f%%\n", t.Name, drops[i], pr[i]*100.0))
+			buf.WriteString(fmt.Sprintf("%s = %d, %.3f%%\n", t.NameBBCode(), drops[i], pr[i]*100.0))
 		}
 		msg = buf.String()
 	case "!channelmap":
@@ -850,6 +848,17 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		buf.WriteString("\n")
 		for _, lg := range logs {
 			buf.WriteString(fmt.Sprintf("%v\n", lg))
+		}
+		msg = buf.String()
+	case "!cmdstats":
+		stats, err := store.CmdStats()
+		if err != nil {
+			log.Printf("%v error getting cmd stats: %v", cmd, err)
+		}
+		var buf bytes.Buffer
+		buf.WriteString("\n")
+		for _, s := range stats {
+			buf.WriteString(fmt.Sprintf("%v\n", s))
 		}
 		msg = buf.String()
 	case "!lothlogs":

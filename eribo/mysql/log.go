@@ -34,6 +34,15 @@ func (db *EriboStore) GetRecentCmdLogs(limit, offset int) ([]*eribo.CmdLog, erro
 	return logs, nil
 }
 
+func (db *EriboStore) CmdStats() ([]*eribo.CmdStat, error) {
+	stats := []*eribo.CmdStat{}
+	const query = `SELECT command, COUNT(command) AS uses FROM cmd_logs GROUP BY command ORDER BY uses DESC`
+	if err := db.Select(&stats, query); err != nil {
+		return nil, err
+	}
+	return stats, nil
+}
+
 func (db *EriboStore) AddLothLog(l *eribo.LothLog) error {
 	if (l.Created == time.Time{}) {
 		l.Created = time.Now().UTC().Truncate(timeTruncate)

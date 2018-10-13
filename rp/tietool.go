@@ -18,6 +18,10 @@ type Tietool struct {
 	Weight  int
 }
 
+func (t Tietool) NameBBCode() string {
+	return qualityColorBBCode(t.Quality, t.Name)
+}
+
 func (t Tietool) MarshalText() (string, error) {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("%s\n", t.Name))
@@ -366,5 +370,13 @@ var tietoolsHard = []Tietool{
 		Quality: Uncommon,
 		Desc: tmplMust(`/me generates for {{.User}} a blue {{.Tool}} with
 		Y-shaped harness configuration .`),
+	},
+	{
+		Name:    `[Chastitease Belt]`,
+		Quality: Rare,
+		Desc: tmplMust(`/me slips a {{.Tool}} on {{.User}} and locks it on. The
+		belt is designed to block the wearer from external stimulation while
+		the malleable, almost sentient, interior holds said wearer on the edge
+		of orgasm.`),
 	},
 }
