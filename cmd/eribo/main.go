@@ -15,6 +15,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/kusubooru/eribo/advice"
 	"github.com/kusubooru/eribo/dadjoke"
 	"github.com/kusubooru/eribo/eribo"
 	"github.com/kusubooru/eribo/eribo/mysql"
@@ -573,6 +574,13 @@ func respond(
 			return
 		}
 		msg = j.Joke
+	case eribo.CmdAdvice:
+		a, err := advice.Random()
+		if err != nil {
+			log.Printf("error getting advice: %v", err)
+			return
+		}
+		msg = a
 	case eribo.CmdLoth:
 		if len(args) > 0 && args[0] == "time" {
 			loth := channelMap.Loth(m.Channel)
