@@ -581,6 +581,12 @@ func respond(
 			return
 		}
 		msg = a
+	case eribo.CmdAstro:
+		if len(args) == 0 {
+
+		}
+		msg = "I do not regognize that sign"
+		// TODO: http://horoscope-api.herokuapp.com/horoscope/today/pisces
 	case eribo.CmdLoth:
 		if len(args) > 0 && args[0] == "time" {
 			loth := channelMap.Loth(m.Channel)

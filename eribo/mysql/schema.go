@@ -16,6 +16,9 @@ func (db *EriboStore) createSchema() error {
 	if _, err := db.Exec(tableLothLogs); err != nil {
 		return err
 	}
+	if _, err := db.Exec(tableAstros); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -33,6 +36,9 @@ func (db *EriboStore) dropSchema() error {
 		return err
 	}
 	if _, err := db.Exec(`DROP TABLE loth_logs`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`DROP TABLE astros`); err != nil {
 		return err
 	}
 	return nil
@@ -76,6 +82,27 @@ CREATE TABLE IF NOT EXISTS cmd_logs (
 	args VARCHAR(2000) NOT NULL DEFAULT '',
 	player VARCHAR(255) NOT NULL,
 	channel VARCHAR(255) NOT NULL DEFAULT '',
+	created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id)
+)`
+	tableAstros = `
+CREATE TABLE IF NOT EXISTS astros (
+	id SERIAL,
+	player VARCHAR(255) NOT NULL,
+	astro ENUM(
+			'aries',
+			'taurus',
+			'gemini',
+			'cancer',
+			'leo',
+			'virgo',
+			'libra',
+			'scorpio',
+			'sagittarius',
+			'capricorn',
+			'aquarius',
+			'pisces'
+			),
 	created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (id)
 )`
