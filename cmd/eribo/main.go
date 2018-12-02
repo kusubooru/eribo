@@ -475,7 +475,7 @@ func handleMessages(
 			player, _ := playerMap.GetPlayer(name)
 			if player == nil {
 				log.Printf("JCH: player %q not found in playerMap", name)
-				player := &eribo.Player{Name: name, Status: flist.StatusOnline}
+				player = &eribo.Player{Name: name, Status: flist.StatusOnline}
 				playerMap.SetPlayer(player)
 			}
 			if player.Role == "" && player.Status.IsActive() {
