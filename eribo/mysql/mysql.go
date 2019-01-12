@@ -16,6 +16,10 @@ func NewEriboStore(dataSource string) (*EriboStore, error) {
 	if err != nil {
 		return nil, err
 	}
+	// To resolve the invalid connection issue. See:
+	//
+	// https://github.com/go-sql-driver/mysql/issues/674#issuecomment-345661869
+	db.SetConnMaxLifetime(10 * time.Second)
 	if err := pingDatabase(db); err != nil {
 		log.Fatalln("database ping attempts failed:", err)
 	}
