@@ -10,7 +10,7 @@ func TestSignValue(t *testing.T) {
 		sign Sign
 		want driver.Value
 	}{
-		{Aries, "ariess"},
+		{Aries, "aries"},
 		{"invalid sign", "invalid sign"},
 	}
 

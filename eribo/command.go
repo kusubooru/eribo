@@ -22,6 +22,7 @@ const (
 	CmdMuffin
 	CmdTicklizer
 	CmdAdvice
+	CmdAstro
 )
 
 func (c Command) String() string {
@@ -52,6 +53,8 @@ func (c Command) String() string {
 		return "!ticklizer"
 	case CmdAdvice:
 		return "!advice"
+	case CmdAstro:
+		return "!astro"
 	}
 }
 
@@ -83,6 +86,8 @@ func makeCommand(s string) Command {
 		return CmdTicklizer
 	case "!advice":
 		return CmdAdvice
+	case "!astro":
+		return CmdAstro
 	}
 }
 

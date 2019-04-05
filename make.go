@@ -69,6 +69,7 @@ func main() {
 		name: commandName,
 		targets: []platform{
 			{os: "linux", arch: "amd64"},
+			{os: runtime.GOOS, arch: runtime.GOARCH},
 		},
 	}
 	bin.version = getVersion()
