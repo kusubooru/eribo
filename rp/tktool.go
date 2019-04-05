@@ -427,4 +427,11 @@ var tktools = []Tktool{
 		black as a moonless midnight. The feathers flutter and twist on their
 		own accord as if seeking out sensitive skin to touch.`),
 	},
+	{
+		Name:    `[Scrubby Bath Gloves]`,
+		Quality: Uncommon,
+		weight:  6,
+		Emote: tmplMust(`/me hands {{.User}} pair of {{.Tool}} that leave a
+		teasing, tingling sensation wherever they scrub.`),
+	},
 }

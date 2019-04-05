@@ -47,6 +47,7 @@ func main() {
 		dataSource  = flag.String("datasource", "", "MySQL datasource")
 		joinRooms   = flag.String("join", "", "open private `rooms` to join in JSON format e.g. "+`-join '["Room 1", "Room 2"]'`)
 		statusMsg   = flag.String("status", "", "status message to be displayed")
+		idTimeout   = flag.Int("idtimeout", 10, "seconds to wait for identification before exiting")
 		showVersion = flag.Bool("v", false, "print program version")
 		lowNames    lowLothNames
 		versionArg  bool
@@ -60,6 +61,8 @@ func main() {
 		fmt.Println(botVersion)
 		return
 	}
+
+	identifyTimeout := time.Duration(*idTimeout) * time.Second
 
 	roomTitles, err := splitRoomTitles(*joinRooms)
 	if err != nil {
@@ -141,7 +144,12 @@ func main() {
 	// identifying, you will be disconnected."
 	//
 	// https://wiki.f-list.net/F-Chat_Server_Commands#IDN
-	<-idnch
+	select {
+	case <-idnch:
+	case <-time.After(identifyTimeout):
+		log.Printf("Waited %v for identification, still no reply. Exiting...\n", identifyTimeout)
+		return
+	}
 
 	// Request open private rooms.
 	err = c.SendORS()
@@ -467,7 +475,8 @@ func handleMessages(
 			player, _ := playerMap.GetPlayer(name)
 			if player == nil {
 				log.Printf("JCH: player %q not found in playerMap", name)
-				return
+				player = &eribo.Player{Name: name, Status: flist.StatusOnline}
+				playerMap.SetPlayer(player)
 			}
 			if player.Role == "" && player.Status.IsActive() {
 				//fmt.Printf("player %q joined, getting char data\n", name)
