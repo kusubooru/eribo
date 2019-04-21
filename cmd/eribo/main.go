@@ -401,7 +401,7 @@ func handleMessages(
 			if err := gatherFeedback(c, store, pri); err != nil {
 				log.Println("gather feedback err:", err)
 			}
-			respondPriv(c, pri)
+			respondPriv(c, pri, store)
 			respondPrivOwner(c, store, pri, channelMap, botName, botVersion, owner, editor)
 		case ors := <-orsch:
 			flist.SortChannelsByTitle(ors.Channels)
@@ -534,6 +534,10 @@ func charFavesTickling(char *flist.CharacterData, ml *flist.MappingList) bool {
 		return true
 	}
 	return false
+}
+
+type cmdLogAdder interface {
+	AddCmdLog(*eribo.CmdLog) error
 }
 
 type logAdder interface {
@@ -752,7 +756,7 @@ func getImagesString(store eribo.Store, limit, offset int, reverse, filterDone b
 	return b.String()
 }
 
-func respondPriv(c *flist.Client, pri *flist.PRI) {
+func respondPriv(c *flist.Client, pri *flist.PRI, logAdder cmdLogAdder) {
 
 	var msg string
 	cmd, args := eribo.ParseCommand(pri.Message)
@@ -783,6 +787,13 @@ func respondPriv(c *flist.Client, pri *flist.PRI) {
 	}
 
 	if msg != "" {
+		e := &eribo.CmdLog{Command: cmd, Args: strings.Join(args, " "), Player: pri.Character}
+		go func(e *eribo.CmdLog) {
+			if err := logAdder.AddCmdLog(e); err != nil {
+				log.Printf("logging priv command %v: %v", cmd, err)
+			}
+		}(e)
+
 		resp := &flist.PRI{
 			Recipient: pri.Character,
 			Message:   msg,
