@@ -1,7 +1,6 @@
 package astro
 
 import (
-	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -25,21 +24,6 @@ const (
 	Aquarius    Sign = "aquarius"
 	Pisces      Sign = "pisces"
 )
-
-// Value tells the database driver how to store a Sign.
-func (s Sign) Value() (driver.Value, error) { return string(s), nil }
-
-// Scan tells the database driver how to scan the stored value into a Sign.
-func (s *Sign) Scan(value interface{}) error {
-	if value == nil {
-		return fmt.Errorf("astro: cannot scan nil as Sign")
-	}
-
-	sv := fmt.Sprintf("%v", value)
-	*s = Sign(sv)
-
-	return nil
-}
 
 var signs = []Sign{
 	Aries,
