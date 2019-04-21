@@ -16,6 +16,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/kusubooru/eribo/advice"
+	"github.com/kusubooru/eribo/astro"
 	"github.com/kusubooru/eribo/dadjoke"
 	"github.com/kusubooru/eribo/eribo"
 	"github.com/kusubooru/eribo/eribo/mysql"
@@ -400,6 +401,7 @@ func handleMessages(
 			if err := gatherFeedback(c, store, pri); err != nil {
 				log.Println("gather feedback err:", err)
 			}
+			respondPriv(c, pri)
 			respondPrivOwner(c, store, pri, channelMap, botName, botVersion, owner, editor)
 		case ors := <-orsch:
 			flist.SortChannelsByTitle(ors.Channels)
@@ -590,12 +592,6 @@ func respond(
 			return
 		}
 		msg = a
-	case eribo.CmdAstro:
-		if len(args) == 0 {
-
-		}
-		msg = "I do not regognize that sign"
-		// TODO: http://horoscope-api.herokuapp.com/horoscope/today/pisces
 	case eribo.CmdLoth:
 		if len(args) > 0 && args[0] == "time" {
 			loth := channelMap.Loth(m.Channel)
@@ -754,6 +750,55 @@ func getImagesString(store eribo.Store, limit, offset int, reverse, filterDone b
 		fmt.Fprintf(&b, "%v\n", img)
 	}
 	return b.String()
+}
+
+func respondPriv(c *flist.Client, pri *flist.PRI) {
+
+	var msg string
+	cmd, args := eribo.ParseCommand(pri.Message)
+	switch cmd {
+	case eribo.CmdAstro:
+		if len(args) == 0 {
+			msg = "Usage: !astro <sign> [period]"
+		}
+		if len(args) == 1 {
+			sign := astro.Sign(args[0])
+			m, err := astro.For("", sign)
+			if err != nil {
+				log.Printf("getting horoscope: %v", err)
+				msg = "My crystal sphere is cloudy."
+			}
+			msg = m
+		}
+		if len(args) >= 2 {
+			sign := astro.Sign(args[0])
+			period := args[1]
+			m, err := astro.For(period, sign)
+			if err != nil {
+				log.Printf("getting horoscope: %v", err)
+				msg = "My crystal sphere is cloudy."
+			}
+			msg = m
+		}
+	}
+
+	if msg != "" {
+		resp := &flist.PRI{
+			Recipient: pri.Character,
+			Message:   msg,
+		}
+		err := c.SendPRI(resp)
+		switch err {
+		case flist.ErrMsgTooLong:
+			resp.Message = fmt.Sprintf("%v", flist.ErrMsgTooLong)
+			if err2 := c.SendPRI(resp); err2 != nil {
+				log.Printf("error sending PRI response: %v", err2)
+			}
+		case nil:
+		default:
+			log.Printf("error sending %v response: %v", cmd, err)
+		}
+	}
 }
 
 func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channelMap *eribo.ChannelMap, botName, botVersion, owner, editor string) {

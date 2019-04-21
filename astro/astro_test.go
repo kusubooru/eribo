@@ -2,6 +2,7 @@ package astro
 
 import (
 	"database/sql/driver"
+	"strings"
 	"testing"
 )
 
@@ -49,5 +50,15 @@ func TestSignScanNil(t *testing.T) {
 	var s Sign
 	if err := s.Scan(nil); err == nil {
 		t.Errorf("Scan nil to Sign expected to return error")
+	}
+}
+
+func TestForInvalidSign(t *testing.T) {
+	h, err := For("", "foo")
+	if err != nil {
+		t.Errorf("For returned err: %v", err)
+	}
+	if !strings.Contains(h, "signs are") {
+		t.Errorf("For with invalid sign should return no error and a message with the valid signs, got %s", h)
 	}
 }
