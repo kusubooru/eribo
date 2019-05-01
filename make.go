@@ -5,7 +5,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"runtime"
@@ -53,6 +52,7 @@ var (
 	deploy    = flag.Bool("deploy", false, "Deploy binary to server.")
 	buildARCH = flag.String("arch", runtime.GOARCH, "Architecture to build for.")
 	buildOS   = flag.String("os", runtime.GOOS, "Operating system to build for.")
+	password  = flag.String("pass", "", "Password of the machine used for deployment.")
 )
 
 func usage() {
@@ -95,16 +95,29 @@ func main() {
 }
 
 func deployBin(bin binary, OS, arch string) {
+	OS = "linux"
+	arch = "amd64"
 	buildBinary(bin, OS, arch)
 	name := bin.Name(OS, arch)
+	defer func() {
+		if err := os.Remove(name); err != nil {
+			fmt.Fprintf(os.Stderr, "cleaning up %s: %v", name, err)
+		}
+	}()
 
-	server := "kusubooru.com"
+	server := "kusubooru@kusubooru.com"
 	fmt.Println("Deploying to server", server)
-	cmd := exec.Command("scp", name, server+":"+deployFolder)
+	args := []string{name, server + ":" + deployFolder}
+	cmdName := "scp"
+	if runtime.GOOS == "windows" {
+		cmdName = "pscp"
+		args = append([]string{"-scp", "-pw", *password}, args...)
+	}
+	cmd := exec.Command(cmdName, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("Error deploying to server: %v", err)
+		fmt.Fprintf(os.Stderr, "Error deploying to server: %v", err)
 	}
 }
 
@@ -112,7 +125,7 @@ func getVersion() string {
 	cmd := exec.Command("git", "describe", "--tags")
 	out, err := cmd.Output()
 	if err != nil {
-		log.Fatalf("Error running git describe: %v", err)
+		fmt.Fprintf(os.Stderr, "Error running git describe: %v", err)
 	}
 	return strings.TrimPrefix(strings.TrimSpace(string(out)), "v")
 }
@@ -143,7 +156,7 @@ func buildBinary(bin binary, OS, arch string) {
 	cmd.Env = setEnv(cmd.Env, "GOARCH", arch)
 	fmt.Println("Building binary:", bin.Name(OS, arch))
 	if err := cmd.Run(); err != nil {
-		log.Fatalln("Error running go build:", err)
+		fmt.Fprintln(os.Stderr, "Error running go build:", err)
 	}
 }
 
