@@ -12,19 +12,23 @@ import (
 )
 
 type Tietool struct {
-	Name    string
+	name    string
 	Quality Quality
 	Desc    *template.Template
 	Weight  int
 }
 
+func (t Tietool) Name() string {
+	return t.name
+}
+
 func (t Tietool) NameBBCode() string {
-	return qualityColorBBCode(t.Quality, t.Name)
+	return qualityColorBBCode(t.Quality, t.Name())
 }
 
 func (t Tietool) MarshalText() (string, error) {
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("%s\n", t.Name))
+	buf.WriteString(fmt.Sprintf("%s\n", t.Name()))
 	buf.WriteString(fmt.Sprintf("%s\n", t.Quality))
 	buf.WriteString(fmt.Sprintf("%s\n", clean(t.Desc.Tree.Root.String())))
 	return buf.String(), nil
@@ -49,7 +53,7 @@ func (t *Tietool) UnmarshalText(s string) error {
 	if err != nil {
 		return err
 	}
-	t.Name = string(name)
+	t.name = string(name)
 	t.Desc = desc
 	t.Quality = makeQuality(string(quality))
 	return nil
@@ -64,7 +68,7 @@ func (t Tietool) Apply(user string) (string, error) {
 		Tool string
 		User string
 	}{
-		qualityColorBBCode(t.Quality, t.Name),
+		qualityColorBBCode(t.Quality, t.Name()),
 		user,
 	}
 	var buf bytes.Buffer
@@ -74,7 +78,12 @@ func (t Tietool) Apply(user string) (string, error) {
 	return clean(buf.String()), nil
 }
 
-func RandTietool(user, toolType string) (string, error) {
+type TietoolsLootTable struct {
+	*loot.Table
+	ToolType string
+}
+
+func NewTietoolsLootTable(toolType string) *TietoolsLootTable {
 	table := &loot.Table{}
 	tools := tietools
 	switch toolType {
@@ -84,6 +93,48 @@ func RandTietool(user, toolType string) (string, error) {
 	for _, t := range tools {
 		table.Add(t, t.Quality.Weight())
 	}
+	return &TietoolsLootTable{Table: table, ToolType: toolType}
+}
+
+func (t *TietoolsLootTable) Legendaries() int {
+	legos := 0
+	drops := t.Drops()
+	t.RLock()
+	defer t.RUnlock()
+	for _, d := range drops {
+		if d.Item == nil {
+			continue
+		}
+		tietool, ok := d.Item.(Tietool)
+		if !ok {
+			continue
+		}
+		if tietool.Quality == Legendary && d.Weight > 0 {
+			legos++
+		}
+	}
+	return legos
+}
+
+func (t *TietoolsLootTable) RandTietoolDecreaseWeight(user string) (string, error) {
+	legos := t.Legendaries()
+	if legos == 0 {
+		t = NewTietoolsLootTable(t.ToolType)
+	}
+	seed := time.Now().UnixNano()
+	_, roll := t.RollDecreaseWeight(seed)
+	if roll == nil {
+		return "", fmt.Errorf("tietool loot table returned nothing")
+	}
+	tool, ok := roll.(Tietool)
+	if !ok {
+		return "", fmt.Errorf("TietoolsLootTable contains an item that is not a Tietool")
+	}
+	return tool.Apply(user)
+}
+
+func RandTietool(user, toolType string) (string, error) {
+	table := NewTietoolsLootTable(toolType)
 	_, roll := table.Roll(time.Now().UnixNano())
 	if tool, ok := roll.(Tietool); ok {
 		return tool.Apply(user)
@@ -100,79 +151,79 @@ func Tietools(toolType string) []Tietool {
 
 var tietools = []Tietool{
 	{
-		Name:    `[Blindfold]`,
+		name:    `[Blindfold]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a black {{.Tool}}.`),
 	},
 	{
-		Name:    `[Silken Sleep Mask]`,
+		name:    `[Silken Sleep Mask]`,
 		Quality: Uncommon,
 		Desc:    tmplMust(`/me generates for {{.User}} a luxurious {{.Tool}}.`),
 	},
 	{
-		Name:    `[Bondage Rope]`,
+		name:    `[Bondage Rope]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a package of soft, cotton {{.Tool}}.`),
 	},
 	{
-		Name:    `[Toe Ties]`,
+		name:    `[Toe Ties]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a set of {{.Tool}}.`),
 	},
 	{
-		Name:    `[Shibari Rope]`,
+		name:    `[Shibari Rope]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me generates for {{.User}} a hefty amount of {{.Tool}}
 		made from natural hemp.`),
 	},
 	{
-		Name:    `[Ball Gag]`,
+		name:    `[Ball Gag]`,
 		Quality: Common,
 		Desc: tmplMust(`/me generates for {{.User}} a red {{.Tool}} with black
 		leather straps.`),
 	},
 	{
-		Name:    `[Fuzzy Handcuffs]`,
+		name:    `[Fuzzy Handcuffs]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a pair of pink {{.Tool}}.`),
 	},
 	{
-		Name:    `[Leg Spreader]`,
+		name:    `[Leg Spreader]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[Large Weighted Net]`,
+		name:    `[Large Weighted Net]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[Heat Shrink Tube]`,
+		name:    `[Heat Shrink Tube]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me generates for {{.User}} a {{.Tool}}. Body heat
 		is enough to make it shrink and trap anything inside into a seamless
 		rubber tube.`),
 	},
 	{
-		Name:    `[Web Crawler's Web Shooter Cuffs]`,
+		name:    `[Web Crawler's Web Shooter Cuffs]`,
 		Quality: Rare,
 		Desc: tmplMust(`/me generates for {{.User}} two fully loaded {{.Tool}}.
 		Thwip! Thwip!`),
 	},
 	{
-		Name:    `[Braided Leather Bolas]`,
+		name:    `[Braided Leather Bolas]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me generates for {{.User}} a set of {{.Tool}}. The
 		leather balls are connected together with braided leather and contain
 		some kind of weight inside.`),
 	},
 	{
-		Name:    `[Lace Collar]`,
+		name:    `[Lace Collar]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[Magnetic Bracers]`,
+		name:    `[Magnetic Bracers]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me generates for {{.User}} two {{.Tool}}. The
 		magnets are strong and easily stick to any metal surface. Their
@@ -180,18 +231,18 @@ var tietools = []Tietool{
 		separate.`),
 	},
 	{
-		Name:    `[Chinese Finger Traps]`,
+		name:    `[Chinese Finger Traps]`,
 		Quality: Uncommon,
 		Desc:    tmplMust(`/me generates for {{.User}} a set of colorful {{.Tool}}.`),
 	},
 	{
-		Name:    `[Engraved Leather Collar]`,
+		name:    `[Engraved Leather Collar]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me generates for {{.User}} a black {{.Tool}}. The
 		silver tag of the collar is engraved with the name "{{.User}}".`),
 	},
 	{
-		Name:    `[Wrist to Ankle Cuffs]`,
+		name:    `[Wrist to Ankle Cuffs]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me generates for {{.User}} a set of black, nylon
 		{{.Tool}} bondage restrains. The wrist cuffs are attached to the ankle
@@ -199,7 +250,7 @@ var tietools = []Tietool{
 		slightly spread, prominently displaying their buttocks.`),
 	},
 	{
-		Name:    `[Collar to Wrist Restrains]`,
+		name:    `[Collar to Wrist Restrains]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me generates for {{.User}} a set of leather
 		{{.Tool}}. The collar extends to a leather strap which is connected by
@@ -207,87 +258,87 @@ var tietools = []Tietool{
 		collar pass through three O-rings and form a triangle.`),
 	},
 	{
-		Name:    `[Chloroform Soaked Rag]`,
+		name:    `[Chloroform Soaked Rag]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[Saran Wrap]`,
+		name:    `[Saran Wrap]`,
 		Quality: Common,
 		Desc: tmplMust(`/me generates for {{.User}} a hefty amount of
 		{{.Tool}}.`),
 	},
 	{
-		Name:    `[Chastity Belt]`,
+		name:    `[Chastity Belt]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[Lasso of Truth]`,
+		name:    `[Lasso of Truth]`,
 		Quality: Legendary,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[Bondage Yoke]`,
+		name:    `[Bondage Yoke]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. It's made of
 		aluminum, with padded leather lining the neck and wrist restraints.`),
 	},
 	{
-		Name:    `[Bolas]`,
+		name:    `[Bolas]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. The soft, cotton
 		rope has two padded weights on either end.`)},
 	{
-		Name:    `[Panel Gag Harness]`,
+		name:    `[Panel Gag Harness]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. It comes with an
 		optional padlock if needed to secure in place.`)},
 	{
-		Name:    `[Green Goo Ball]`,
+		name:    `[Green Goo Ball]`,
 		Quality: Common,
 		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}, and wipes the
 		excess off on the side of a couch. It's very sticky!`)},
 	{
-		Name:    `[Red Goo Ball]`,
+		name:    `[Red Goo Ball]`,
 		Quality: Common,
 		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}, and wipes the
 		excess off on the back of someone's shirt. It's very sticky and
 		unusually warm!`),
 	},
 	{
-		Name:    `[Silk Sashes]`,
+		name:    `[Silk Sashes]`,
 		Quality: Common,
 		Desc: tmplMust(`/me hands {{.User}} several sturdy {{.Tool}}. Say
 		that five times fast.`)},
 	{
-		Name:    `[Eyeless Balaclava]`,
+		name:    `[Eyeless Balaclava]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. There is only a
 		hole cut out for the mouth.`)},
 	{
-		Name:    `[Upperbody Posture Brace]`,
+		name:    `[Upperbody Posture Brace]`,
 		Quality: Rare,
 		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. It's far more rigid
 		and restrictive than usual.`)},
 	{
-		Name:    `[Knee Brace]`,
+		name:    `[Knee Brace]`,
 		Quality: Rare,
 		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}. It's made of steel
 		and doesn't bend.`)},
 	{
-		Name:    `[Invisible Straitjacket]`,
+		name:    `[Invisible Straitjacket]`,
 		Quality: Epic,
 		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}}, maybe? It's hard to
 		see if anything's actually there.`)},
 	{
-		Name:    `[VonVitae-Seeking Bondage Mittens]`,
+		name:    `[VonVitae-Seeking Bondage Mittens]`,
 		Quality: Legendary,
 		Desc: tmplMust(`/me hands {{.User}} a pair of {{.Tool}}. Push the
 		button on the side and they'll seek out their pre-programmed target.`),
 	},
 	{
-		Name:    `[Paralysis Cattle Prod]`,
+		name:    `[Paralysis Cattle Prod]`,
 		Quality: Epic,
 		Desc: tmplMust(`/me hands {{.User}} a {{.Tool}} with a full battery.
 		Instead of a painful shock the afflicted area is paralyzed for a few
@@ -297,82 +348,82 @@ var tietools = []Tietool{
 
 var tietoolsHard = []Tietool{
 	{
-		Name:    `[Steel Collar]`,
+		name:    `[Steel Collar]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[Straightjacket]`,
+		name:    `[Straightjacket]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a white {{.Tool}}.`),
 	},
 	{
-		Name:    `[Full Body Straightjacket]`,
+		name:    `[Full Body Straightjacket]`,
 		Quality: Uncommon,
 		Desc:    tmplMust(`/me generates for {{.User}} a white {{.Tool}}.`),
 	},
 	{
-		Name:    `[Nipple Clamps]`,
+		name:    `[Nipple Clamps]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a pair of {{.Tool}}.`),
 	},
 	{
-		Name:    `[Latex Bodysuit]`,
+		name:    `[Latex Bodysuit]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[Latex Dog Suit]`,
+		name:    `[Latex Dog Suit]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me generates for {{.User}} a {{.Tool}}. It forces the
 		wearer to walk with their elbows and knees while keeping their feet up.
 		It is accompanied with a detachable mask with dog ears.`),
 	},
 	{
-		Name:    `[Gas Mask]`,
+		name:    `[Gas Mask]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[Gimp Mask]`,
+		name:    `[Gimp Mask]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[O-Ring Gag]`,
+		name:    `[O-Ring Gag]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} an {{.Tool}}.`),
 	},
 	{
-		Name:    `[Slave Collar With Leash]`,
+		name:    `[Slave Collar With Leash]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[Vacuum Bed]`,
+		name:    `[Vacuum Bed]`,
 		Quality: Common,
 		Desc:    tmplMust(`/me generates for {{.User}} a {{.Tool}}.`),
 	},
 	{
-		Name:    `[Engraved Slave Collar With Leash]`,
+		name:    `[Engraved Slave Collar With Leash]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me generates for {{.User}} an {{.Tool}}. On the
 		collar, the words "Tickle Slut" are engraved with large, silver
 		letters.`),
 	},
 	{
-		Name:    `[Armbinder]`,
+		name:    `[Armbinder]`,
 		Quality: Uncommon,
 		Desc:    tmplMust(`/me generates for {{.User}} a leather {{.Tool}}.`),
 	},
 	{
-		Name:    `[Monoglove Armbinder]`,
+		name:    `[Monoglove Armbinder]`,
 		Quality: Uncommon,
 		Desc: tmplMust(`/me generates for {{.User}} a blue {{.Tool}} with
 		Y-shaped harness configuration .`),
 	},
 	{
-		Name:    `[Chastitease Belt]`,
+		name:    `[Chastitease Belt]`,
 		Quality: Rare,
 		Desc: tmplMust(`/me slips a {{.Tool}} on {{.User}} and locks it on. The
 		belt is designed to block the wearer from external stimulation while

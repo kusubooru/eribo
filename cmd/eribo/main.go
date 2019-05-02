@@ -21,7 +21,6 @@ import (
 	"github.com/kusubooru/eribo/eribo"
 	"github.com/kusubooru/eribo/eribo/mysql"
 	"github.com/kusubooru/eribo/flist"
-	"github.com/kusubooru/eribo/loot"
 	"github.com/kusubooru/eribo/rp"
 	"mvdan.cc/xurls"
 )
@@ -175,6 +174,10 @@ func main() {
 		return
 	}
 
+	tietoolsLootTable := rp.NewTietoolsLootTable("")
+	tiehardsLootTable := rp.NewTietoolsLootTable("hard")
+	tktoolsLootTable := rp.NewTktoolsLootTable()
+
 	handleMessages(
 		c,
 		*account,
@@ -186,6 +189,9 @@ func main() {
 		lowNames,
 		mappingList,
 		store,
+		tietoolsLootTable,
+		tiehardsLootTable,
+		tktoolsLootTable,
 		playerMap,
 		channelMap,
 		roomTitles,
@@ -347,6 +353,9 @@ func handleMessages(
 	lowNames []string,
 	mappingList *flist.MappingList,
 	store eribo.Store,
+	tietools *rp.TietoolsLootTable,
+	tiehards *rp.TietoolsLootTable,
+	tktools *rp.TktoolsLootTable,
 	playerMap *eribo.PlayerMap,
 	channelMap *eribo.ChannelMap,
 	roomTitles []string,
@@ -396,13 +405,13 @@ func handleMessages(
 					log.Printf("error storing message %#v: %v", m, err)
 				}
 			}
-			respond(c, store, msg, channelMap, botName, owner, lowNames)
+			respond(c, store, tietools, tiehards, tktools, msg, channelMap, botName, owner, lowNames)
 		case pri := <-prich:
 			if err := gatherFeedback(c, store, pri); err != nil {
 				log.Println("gather feedback err:", err)
 			}
 			respondPriv(c, pri, store)
-			respondPrivOwner(c, store, pri, channelMap, botName, botVersion, owner, editor)
+			respondPrivOwner(c, store, tietools, tiehards, tktools, pri, channelMap, botName, botVersion, owner, editor)
 		case ors := <-orsch:
 			flist.SortChannelsByTitle(ors.Channels)
 			for _, title := range roomTitles {
@@ -548,6 +557,9 @@ type logAdder interface {
 func respond(
 	c *flist.Client,
 	logAdder logAdder,
+	tietools *rp.TietoolsLootTable,
+	tiehards *rp.TietoolsLootTable,
+	tktools *rp.TktoolsLootTable,
 	m *flist.MSG,
 	channelMap *eribo.ChannelMap,
 	botName string,
@@ -563,9 +575,9 @@ func respond(
 	case eribo.CmdTomato:
 		msg = rp.Tomato(m.Character, owner)
 	case eribo.CmdTktool:
-		msg, rperr = rp.RandTktool(m.Character)
+		msg, rperr = tktools.RandTktoolDecreaseWeight(m.Character)
 		if rperr != nil {
-			log.Printf("RandTktool: %v", rperr)
+			log.Printf("RandTktoolDecreaseWeight: %v", rperr)
 			return
 		}
 	case eribo.CmdVonprove:
@@ -577,9 +589,13 @@ func respond(
 		if len(args) != 0 {
 			toolType = args[0]
 		}
-		msg, rperr = rp.RandTietool(m.Character, toolType)
+		tieTable := tietools
+		if toolType == "hard" {
+			tieTable = tiehards
+		}
+		msg, rperr = tieTable.RandTietoolDecreaseWeight(m.Character)
 		if rperr != nil {
-			log.Printf("RandTietool error: %v", rperr)
+			log.Printf("TietoolsLootTable(%q).RandTietoolDecreaseWeight error: %v", tieTable.ToolType, rperr)
 			return
 		}
 	case eribo.CmdDadJoke:
@@ -812,7 +828,19 @@ func respondPriv(c *flist.Client, pri *flist.PRI, logAdder cmdLogAdder) {
 	}
 }
 
-func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channelMap *eribo.ChannelMap, botName, botVersion, owner, editor string) {
+func respondPrivOwner(
+	c *flist.Client,
+	store eribo.Store,
+	tietools *rp.TietoolsLootTable,
+	tiehards *rp.TietoolsLootTable,
+	tktools *rp.TktoolsLootTable,
+	pri *flist.PRI,
+	channelMap *eribo.ChannelMap,
+	botName,
+	botVersion,
+	owner,
+	editor string,
+) {
 	if pri.Character != owner && pri.Character != editor {
 		return
 	}
@@ -863,34 +891,79 @@ func respondPrivOwner(c *flist.Client, store eribo.Store, pri *flist.PRI, channe
 		offset, _ := argsPopAtoiDefault(args, 0)
 
 		msg = getImagesString(store, limit, offset, reverse, !showAll, cmd)
+	case "!tietoolstable":
+		var buf bytes.Buffer
+
+		table := tietools
+		if len(cmdArgs) > 0 && cmdArgs[0] == "hard" {
+			table = tiehards
+		}
+		buf.WriteString(fmt.Sprintf("Total Weight: %d\n", table.TotalWeight()))
+
+		drops := table.Drops()
+		for _, d := range drops {
+			if d.Item == nil {
+				continue
+			}
+			tietool, ok := d.Item.(rp.Tietool)
+			if !ok {
+				continue
+			}
+			buf.WriteString(fmt.Sprintf("%5d %35s\n", d.Weight, tietool.NameBBCode()))
+		}
+		msg = buf.String()
+	case "!tktoolstable":
+		var buf bytes.Buffer
+		buf.WriteString(fmt.Sprintf("Total Weight: %d\n", tktools.TotalWeight()))
+
+		drops := tktools.Drops()
+		for _, d := range drops {
+			if d.Item == nil {
+				continue
+			}
+			tktool, ok := d.Item.(rp.Tktool)
+			if !ok {
+				continue
+			}
+			buf.WriteString(fmt.Sprintf("%5d %35s\n", d.Weight, tktool.NameBBCode()))
+		}
+		msg = buf.String()
 	case "!simtktools":
 		rolls := atoiFirstArg(cmdArgs, 1000)
-		table := &loot.Table{}
-		for _, t := range rp.Tktools() {
-			table.Add(t, t.Weight())
-		}
-		drops, pr := table.Sim(rolls)
+
+		drops, pr := tktools.Sim(rolls)
 		var buf bytes.Buffer
 		buf.WriteString("\n")
-		for i, t := range rp.Tktools() {
-			buf.WriteString(fmt.Sprintf("%s = %d, %.3f%%\n", t.NameBBCode(), drops[i], pr[i]*100.0))
+		for i, d := range tktools.Drops() {
+			if d.Item == nil {
+				continue
+			}
+			tktool, ok := d.Item.(rp.Tktool)
+			if !ok {
+				continue
+			}
+			buf.WriteString(fmt.Sprintf("%s = %d, %.3f%%\n", tktool.NameBBCode(), drops[i], pr[i]*100.0))
 		}
 		msg = buf.String()
 	case "!simtietools":
 		rolls := atoiFirstArg(cmdArgs, 1000)
-		table := &loot.Table{}
-		toolType := ""
-		if len(cmdArgs) > 1 {
-			toolType = cmdArgs[1]
+		table := tietools
+		if len(cmdArgs) > 1 && cmdArgs[1] == "hard" {
+			table = tiehards
 		}
-		for _, t := range rp.Tietools(toolType) {
-			table.Add(t, t.Quality.Weight())
-		}
+
 		drops, pr := table.Sim(rolls)
 		var buf bytes.Buffer
 		buf.WriteString("\n")
-		for i, t := range rp.Tietools(toolType) {
-			buf.WriteString(fmt.Sprintf("%s = %d, %.3f%%\n", t.NameBBCode(), drops[i], pr[i]*100.0))
+		for i, d := range table.Drops() {
+			if d.Item == nil {
+				continue
+			}
+			tietool, ok := d.Item.(rp.Tietool)
+			if !ok {
+				continue
+			}
+			buf.WriteString(fmt.Sprintf("%s = %d, %.3f%%\n", tietool.NameBBCode(), drops[i], pr[i]*100.0))
 		}
 		msg = buf.String()
 	case "!channelmap":

@@ -60,19 +60,19 @@ func makeQuality(s string) Quality {
 func (q Quality) Weight() int {
 	switch q {
 	default:
-		return 0
+		return 0 // 0
 	case Poor:
-		return 400
+		return 40 // 30
 	case Common:
-		return 1000
+		return 50 // 40
 	case Uncommon:
-		return 200
+		return 30 // 20
 	case Rare:
-		return 50
+		return 20 // 10
 	case Epic:
-		return 10
+		return 5 // 5
 	case Legendary:
-		return 1
+		return 1 // 1
 	}
 }
 
