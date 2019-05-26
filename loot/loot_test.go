@@ -16,7 +16,9 @@ func TestTable_Roll(t *testing.T) {
 	}
 	table := NewTable(drops)
 	m := make(map[int]int, len(drops))
-	rolls := 10000
+	// TODO(kusubooruji): this used to pass with 10000 rolls. Rework the numbers
+	// and reduce the rolls for faster test.
+	rolls := 1000000
 	for k := 0; k < rolls; k++ {
 		seed := time.Now().UnixNano()
 		i, _ := table.Roll(seed)

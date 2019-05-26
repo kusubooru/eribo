@@ -452,4 +452,13 @@ var tktools = []Tktool{
 		of any object or living thing. Sprouting extra limbs near or even on the victim, 
 		can render almost any foe into submission with ease.`),
 	},
+	{
+		name:    `[Kocho Kobra]`,
+		Quality: Epic,
+		Emote: tmplMust(`/me hands {{.User}} the infamous {{.Tool}}. The snake is
+		absolutely covered with bumps and ridges on its velvet-soft skin, its fangs
+		are vibrating nubs, its tongue is akin to a electric toothbrush, and it
+		excretes an oil that sensitises the skin. The snake looks to you for
+		instructions.`),
+	},
 }

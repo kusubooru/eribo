@@ -38,7 +38,7 @@ func main() {
 	var (
 		insecure    = flag.Bool("insecure", false, "use insecure ws:// websocket instead of wss://")
 		testServer  = flag.Bool("testserver", false, "connect to test server instead of production")
-		addr        = flag.String("addr", "wss://chat.f-list.net:9799", "websocket address to connect")
+		addr        = flag.String("addr", "wss://chat.f-list.net/chat2", "websocket address to connect")
 		account     = flag.String("account", "", "websocket address to connect")
 		password    = flag.String("password", "", "websocket address to connect")
 		character   = flag.String("character", "", "websocket address to connect")

@@ -8,7 +8,7 @@ import (
 
 func TestTietoolMarshalText(t *testing.T) {
 	tool := Tietool{
-		Name:    "foo",
+		name:    "foo",
 		Quality: Rare,
 		Desc: tmplMust(`/me gives a rare, amazing, fantastic {{.Tool}} to
 		{{.User}}`),
@@ -38,7 +38,7 @@ rare
 	}
 
 	want := &Tietool{
-		Name:    "foo",
+		name:    "foo",
 		Quality: Rare,
 		Desc:    tmplMust(`/me gives {{.Tool}} to {{.User}}`),
 	}
@@ -57,8 +57,8 @@ func TestTietoolsApply(t *testing.T) {
 		if !strings.Contains(msg, user) {
 			t.Errorf("applying user %q on tool %+v, message = %q, want user in message", user, tool, msg)
 		}
-		if !strings.Contains(msg, tool.Name) {
-			t.Errorf("applying user %q on tool %+v, message = %q, want %s in message", user, tool, msg, tool.Name)
+		if !strings.Contains(msg, tool.Name()) {
+			t.Errorf("applying user %q on tool %+v, message = %q, want %s in message", user, tool, msg, tool.Name())
 		}
 	}
 }

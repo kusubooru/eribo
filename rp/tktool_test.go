@@ -3,6 +3,8 @@ package rp
 import (
 	"strings"
 	"testing"
+
+	"github.com/kusubooru/eribo/loot"
 )
 
 func testTktoolApply(t *testing.T, tool Tktool, user string) string {
@@ -29,19 +31,19 @@ func TestTktool_Apply(t *testing.T) {
 		want string
 	}{
 		{
-			Tktool{Name: "tool", Quality: Common, Emote: tmplMust("/me hands {{.User}} a {{.Tool}}.")},
+			Tktool{name: "tool", Quality: Common, Emote: tmplMust("/me hands {{.User}} a {{.Tool}}.")},
 			"/me hands Bob a [color=white]tool[/color].",
 		},
 		{ // Tool with quality unknown must still produce white color.
-			Tktool{Name: "tool", Emote: tmplMust("/me hands {{.User}} a {{.Tool}}.")},
+			Tktool{name: "tool", Emote: tmplMust("/me hands {{.User}} a {{.Tool}}.")},
 			"/me hands Bob a [color=white]tool[/color].",
 		},
 		{
-			Tktool{Name: "tool", Quality: Poor, Colors: []Color{Blue}, Emote: tmplMust("/me hands {{.User}} a {{.Color}} {{.Tool}}.")},
+			Tktool{name: "tool", Quality: Poor, Colors: []Color{Blue}, Emote: tmplMust("/me hands {{.User}} a {{.Color}} {{.Tool}}.")},
 			"/me hands Bob a blue [color=gray]tool[/color].",
 		},
 		{
-			Tktool{Name: "tool", Quality: Uncommon, Colors: []Color{Blue}, Emote: tmplMust("/me hands {{.User}} a {{.Tool}}.")},
+			Tktool{name: "tool", Quality: Uncommon, Colors: []Color{Blue}, Emote: tmplMust("/me hands {{.User}} a {{.Tool}}.")},
 			"/me hands Bob a [color=green]tool[/color].",
 		},
 	}
@@ -67,8 +69,32 @@ func TestTktoolsApply(t *testing.T) {
 		if !strings.Contains(msg, user) {
 			t.Errorf("applying user %q on tool %+v, message = %q, want user in message", user, tool, msg)
 		}
-		if !strings.Contains(msg, tool.Name) {
-			t.Errorf("applying user %q on tool %+v, message = %q, want %s in message", user, tool, msg, tool.Name)
+		if !strings.Contains(msg, tool.Name()) {
+			t.Errorf("applying user %q on tool %+v, message = %q, want %s in message", user, tool, msg, tool.Name())
 		}
+	}
+}
+
+func TestTktoolsLootTableLegendaries(t *testing.T) {
+
+	tableOneLego := loot.NewTable(
+		[]loot.Drop{
+			{Item: Tktool{Quality: Legendary}, Weight: 0},
+			{Item: Tktool{Quality: Epic}, Weight: 1},
+		},
+	)
+	tests := []struct {
+		name string
+		t    *TktoolsLootTable
+		want int
+	}{
+		{"1 lego", &TktoolsLootTable{tableOneLego}, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.t.Legendaries(); got != tt.want {
+				t.Errorf("TktoolsLootTable.Legendaries() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
