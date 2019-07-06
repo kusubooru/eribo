@@ -430,4 +430,12 @@ var tietoolsHard = []Tietool{
 		the malleable, almost sentient, interior holds said wearer on the edge
 		of orgasm.`),
 	},
+	{
+		name:    `[Corset of Gargalesis]`,
+		Quality: Epic,
+		Desc: tmplMust(`/me laces and locks the {{.Tool}} onto {{.User}}. The
+		enchanted cloth, as if it has a mind of its own, it starts tightening
+		and immediately begins inflicting the feeling of fingers poking,
+		prodding and wiggling into the victim's ribs sides and tummy.`),
+	},
 }
