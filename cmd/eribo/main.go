@@ -617,12 +617,16 @@ func respond(
 			msg = rp.LothTime(loth)
 			break
 		}
-		loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour, lowNames)
-		lothLog := &eribo.LothLog{Issuer: m.Character, Channel: m.Channel, Loth: loth, IsNew: isNew, Targets: targets}
-		if err := logAdder.AddLothLog(lothLog); err != nil {
-			log.Printf("error logging Loth: %v, isNew: %v, Targets: %v: %v", loth, isNew, targets, err)
+		if len(args) == 0 && args[0] == "confirm" {
+			loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour, lowNames)
+			lothLog := &eribo.LothLog{Issuer: m.Character, Channel: m.Channel, Loth: loth, IsNew: isNew, Targets: targets}
+			if err := logAdder.AddLothLog(lothLog); err != nil {
+				log.Printf("error logging Loth: %v, isNew: %v, Targets: %v: %v", loth, isNew, targets, err)
+			}
+			msg = rp.Loth(m.Character, loth, isNew, targets)
+			break
 		}
-		msg = rp.Loth(m.Character, loth, isNew, targets)
+		msg = rp.LothWarning()
 	case eribo.CmdTieup:
 		if len(args) == 0 {
 			msg = rp.RandTieUp(m.Character, owner, botName, "")

@@ -16,6 +16,10 @@ func LothTime(loth *eribo.Loth) string {
 	return fmt.Sprintf("Current 'lee of the hour is %s. Time left is %s.", loth.Name, loth.TimeLeft())
 }
 
+func LothWarning() string {
+	return "By using this command, you agree that you intend to play with the randomly chosen victim (assuming they are not afk). To continue, type: !loth confirm"
+}
+
 func Loth(user string, loth *eribo.Loth, isNew bool, targets []*eribo.Player) string {
 	switch {
 	case loth == nil:
