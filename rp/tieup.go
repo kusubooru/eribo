@@ -294,4 +294,19 @@ var tieUps = []tieUp{
 		msg: `/me takes %s's hands behind their back and locks them in a wrist
 		cage, leaving their entire body vulnerable!`,
 	},
+	{
+		tags: []string{"ub", "cage", "wrist"},
+		msg: `/me takes %s's hands behind their back and locks them in a wrist
+		cage, leaving their entire body vulnerable!`,
+	},
+	{
+		tags: []string{"feet", "sleep", "couch"},
+		msg: `/me grabs %s and instantly wraps them in super fluffy pillows
+		that are cloud soft, especially designed for superior relaxation. As
+		the wrapping finishes, some extra big pillows are added to the back
+		of the victim, forcing them to lie back, assuming the shape of a
+		couch. Only their head and feet remain exposed, which are propped up
+		at the perfect angle for a high quality sleep. While the soft cloth
+		keeps the victim immobile, it is way too comfortable to complain.`,
+	},
 }
