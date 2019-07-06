@@ -483,9 +483,8 @@ func handleMessages(
 			playerMap.SetPlayerStatus(name, newStatus)
 		case jch := <-jchch:
 			name := jch.Character.Identity
-			player, _ := playerMap.GetPlayer(name)
-			if player == nil {
-				log.Printf("JCH: player %q not found in playerMap", name)
+			player, ok := playerMap.GetPlayer(name)
+			if !ok || player == nil {
 				player = &eribo.Player{Name: name, Status: flist.StatusOnline}
 				playerMap.SetPlayer(player)
 			}
