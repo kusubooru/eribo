@@ -25,6 +25,7 @@ var bodyParts = []bodyPart{
 	{"tummy", false},
 	{"chest", false},
 	{"thighs", true},
+	{"hips", true},
 	{"genitals", true},
 	{"butt", false},
 }
