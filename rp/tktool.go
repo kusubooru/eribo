@@ -9,6 +9,7 @@ import (
 	"github.com/kusubooru/eribo/loot"
 )
 
+// Tktool is a tool meant to tickle others.
 type Tktool struct {
 	name    string
 	Colors  []Color
@@ -17,14 +18,17 @@ type Tktool struct {
 	weight  int
 }
 
+// Name returns the name of the tool.
 func (t Tktool) Name() string {
 	return t.name
 }
 
+// NameBBCode returns the name of the tool in BBCode.
 func (t Tktool) NameBBCode() string {
 	return qualityColorBBCode(t.Quality, t.Name())
 }
 
+// Apply applies the user name to the tool template.
 func (t Tktool) Apply(user string) (string, error) {
 	data := struct {
 		Tool  string
@@ -44,10 +48,12 @@ func (t Tktool) Apply(user string) (string, error) {
 	return clean(buf.String()), nil
 }
 
+// Tktools returns all the tktools.
 func Tktools() []Tktool {
 	return tktools
 }
 
+// Weight returns the weight of a tktool.
 func (t Tktool) Weight() int {
 	if t.weight == 0 {
 		return t.Quality.Weight()
@@ -55,10 +61,12 @@ func (t Tktool) Weight() int {
 	return t.weight * t.Quality.Weight()
 }
 
+// TktoolsLootTable presents a loot table for the tktools.
 type TktoolsLootTable struct {
 	*loot.Table
 }
 
+// NewTktoolsLootTable cretes a new loot table for the tktools.
 func NewTktoolsLootTable() *TktoolsLootTable {
 	table := &loot.Table{}
 	for _, t := range tktools {
@@ -67,6 +75,8 @@ func NewTktoolsLootTable() *TktoolsLootTable {
 	return &TktoolsLootTable{Table: table}
 }
 
+// Legendaries returns how many legendaries there are left in the tktools loot
+// table.
 func (t *TktoolsLootTable) Legendaries() int {
 	legos := 0
 	drops := t.Drops()
@@ -87,6 +97,7 @@ func (t *TktoolsLootTable) Legendaries() int {
 	return legos
 }
 
+// RandTktoolDecreaseWeight returns a random tktool but also decreases its weight.
 func (t *TktoolsLootTable) RandTktoolDecreaseWeight(user string) (string, error) {
 	legos := t.Legendaries()
 	if legos == 0 {
@@ -104,6 +115,7 @@ func (t *TktoolsLootTable) RandTktoolDecreaseWeight(user string) (string, error)
 	return tool.Apply(user)
 }
 
+// RandTktool returns a random tktool.
 func RandTktool(name string) (string, error) {
 	table := NewTktoolsLootTable()
 	_, roll := table.Roll(time.Now().UnixNano())

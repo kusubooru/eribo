@@ -13,6 +13,7 @@ const (
 	defaultUserAgent = "Eribo (https://github.com/kusubooru/eribo)"
 )
 
+// Client is a client for the icanhazdadjoke API.
 type Client struct {
 	client *http.Client
 
@@ -38,6 +39,7 @@ func checkResponse(r *http.Response) error {
 		r.StatusCode, string(data))
 }
 
+// NewClient returns a new client for dadjokes.
 func NewClient(httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
@@ -54,6 +56,7 @@ func NewClient(httpClient *http.Client) *Client {
 	return c
 }
 
+// Random returns a random dadjoke.
 func (c *Client) Random() (*Joke, error) {
 	rel, err := url.Parse("/")
 	if err != nil {
@@ -87,12 +90,14 @@ func (c *Client) Random() (*Joke, error) {
 	return j, nil
 }
 
+// Joke represents a dadjoke.
 type Joke struct {
 	ID     string `json:"id"`
 	Joke   string `json:"joke"`
 	Status int    `json:"status"`
 }
 
+// Random is a helper function that returns a random dadjoke.
 func Random() (*Joke, error) {
 	return NewClient(nil).Random()
 }

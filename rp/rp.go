@@ -7,8 +7,10 @@ import (
 	"time"
 )
 
+// Quality is the quality of an  item, folowing the World of Warcrarft system.
 type Quality int
 
+// Possible quality values.
 const (
 	Unknown Quality = iota
 	Poor
@@ -57,6 +59,7 @@ func makeQuality(s string) Quality {
 	}
 }
 
+// Weight returns the weight chance factor depending on the item quality.
 func (q Quality) Weight() int {
 	switch q {
 	default:
@@ -76,8 +79,10 @@ func (q Quality) Weight() int {
 	}
 }
 
+// Color represents the color of an item.
 type Color int
 
+// All the possible color values.
 const (
 	Colorless Color = iota
 	Red
@@ -147,6 +152,7 @@ func clean(s string) string {
 	return s
 }
 
+// RandFeedback returns a polite response when a player gives feedback.
 func RandFeedback(name string) string {
 	s := feedback[newRand(len(feedback))]
 	return fmt.Sprintf(clean(s), name)
@@ -158,6 +164,7 @@ var feedback = []string{
 	`/me nods affirmatively, "Understood %s. Your feedback has been recorded".`,
 }
 
+// Tomato returns a message for when the player uses the tomato command.
 func Tomato(name, owner string) string {
 	if name == owner {
 		var s = `/me humbly offers a juicy and fresh-looking tomato to %s, "A

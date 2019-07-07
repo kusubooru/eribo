@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// SlipResp is the response that the advice API returns.
 type SlipResp struct {
 	Slip struct {
 		Advice string `json:"advice"`
@@ -12,6 +13,7 @@ type SlipResp struct {
 	} `json:"slip"`
 }
 
+// Random returns a random advice slip from the advice API.
 func Random() (string, error) {
 	resp, err := http.Get("https://api.adviceslip.com/advice")
 	if err != nil {

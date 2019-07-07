@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Vonprove holds the info needed by the homonymous command.
 type Vonprove struct {
 	Raw         string
 	HasDate     bool
@@ -12,6 +13,7 @@ type Vonprove struct {
 	HasUser     bool
 }
 
+// Apply combines the user name and other data of the command with the Raw text.
 func (v Vonprove) Apply(user string) string {
 	var vonproved = time.Date(2017, 9, 26, 0, 0, 0, 0, time.UTC)
 	if v.HasDate {
@@ -26,6 +28,7 @@ func (v Vonprove) Apply(user string) string {
 	return fmt.Sprint(clean(v.Raw))
 }
 
+// RandVonprove returns a random message for the Vonprove command.
 func RandVonprove(user string) string {
 	v := vonproves[newRand(len(vonproves))]
 	return v.Apply(user)

@@ -20,6 +20,7 @@ func (st stand) apply(user string) string {
 	return b.String()
 }
 
+// RandJojo returns a random stand message.
 func RandJojo(user string) string {
 	st := stands[newRand(len(stands))]
 	return st.apply(user)

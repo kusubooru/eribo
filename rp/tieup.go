@@ -31,6 +31,7 @@ func randTieUp(victim, owner, botName string, tieupCase tieupCase, filter string
 	}
 }
 
+// InTieUpTags returns true when a word is part of the tieup tags.
 func InTieUpTags(filter string) bool {
 	tags := tieUpTags()
 	for _, t := range tags {
@@ -55,14 +56,17 @@ func tieUpTags() []string {
 	return tags
 }
 
+// RandTieUp returns a message for the normal state of the tieup command.
 func RandTieUp(victim, owner, botName, filter string) string {
 	return randTieUp(victim, owner, botName, tieUpNormal, filter)
 }
 
+// RandTieUpConfused returns a message for the confused state of the tieup command.
 func RandTieUpConfused(name, owner, botName, filter string) string {
 	return randTieUp(name, owner, botName, tieUpConfused, filter)
 }
 
+// RandTieUpNotFound returns a message for the not found state of the tieup command.
 func RandTieUpNotFound(name, owner, botName, filter string) string {
 	return randTieUp(name, owner, botName, tieUpNotFound, filter)
 }

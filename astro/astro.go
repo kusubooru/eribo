@@ -49,6 +49,7 @@ func validSign(s Sign) bool {
 	return false
 }
 
+// For returns horoscope for a certain period and sign.
 func For(period string, sign Sign) (string, error) {
 	if period == "" {
 		period = "today"

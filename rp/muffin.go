@@ -11,6 +11,7 @@ func (m muffin) apply(user string) string {
 	return fmt.Sprintf("/me prepares some fresh [url=%s]%s[/url] for %s.", m.URL, m.Name, user)
 }
 
+// RandMuffin returns a random muffin message.
 func RandMuffin(user string) string {
 	m := muffins[newRand(len(muffins))]
 	return m.apply(user)

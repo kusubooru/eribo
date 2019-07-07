@@ -11,6 +11,7 @@ import (
 	"github.com/kusubooru/eribo/loot"
 )
 
+// Tietool is a tool meant to tie its victim.
 type Tietool struct {
 	name    string
 	Quality Quality
@@ -18,14 +19,17 @@ type Tietool struct {
 	Weight  int
 }
 
+// Name returns the name of the tool.
 func (t Tietool) Name() string {
 	return t.name
 }
 
+// NameBBCode returns the name of the tool in BBCode.
 func (t Tietool) NameBBCode() string {
 	return qualityColorBBCode(t.Quality, t.Name())
 }
 
+// MarshalText indicates how a tool will appear as text.
 func (t Tietool) MarshalText() (string, error) {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("%s\n", t.Name()))
@@ -34,6 +38,7 @@ func (t Tietool) MarshalText() (string, error) {
 	return buf.String(), nil
 }
 
+// UnmarshalText can scan a tool from text.
 func (t *Tietool) UnmarshalText(s string) error {
 	r := strings.NewReader(s)
 	br := bufio.NewReader(r)
@@ -63,6 +68,7 @@ func tmplMust(s string) *template.Template {
 	return template.Must(template.New("").Parse(s))
 }
 
+// Apply applies the user name to the tool template.
 func (t Tietool) Apply(user string) (string, error) {
 	data := struct {
 		Tool string
@@ -78,11 +84,13 @@ func (t Tietool) Apply(user string) (string, error) {
 	return clean(buf.String()), nil
 }
 
+// TietoolsLootTable is the loot table of the tietools.
 type TietoolsLootTable struct {
 	*loot.Table
 	ToolType string
 }
 
+// NewTietoolsLootTable creates a new loot table for the tietools.
 func NewTietoolsLootTable(toolType string) *TietoolsLootTable {
 	table := &loot.Table{}
 	tools := tietools
@@ -96,6 +104,7 @@ func NewTietoolsLootTable(toolType string) *TietoolsLootTable {
 	return &TietoolsLootTable{Table: table, ToolType: toolType}
 }
 
+// Legendaries returns how many legendaries are left on the loot table.
 func (t *TietoolsLootTable) Legendaries() int {
 	legos := 0
 	drops := t.Drops()
@@ -116,6 +125,7 @@ func (t *TietoolsLootTable) Legendaries() int {
 	return legos
 }
 
+// RandTietoolDecreaseWeight returns a random tietool but also decreases its weight.
 func (t *TietoolsLootTable) RandTietoolDecreaseWeight(user string) (string, error) {
 	legos := t.Legendaries()
 	if legos == 0 {
@@ -133,6 +143,7 @@ func (t *TietoolsLootTable) RandTietoolDecreaseWeight(user string) (string, erro
 	return tool.Apply(user)
 }
 
+// RandTietool returns a random tietool.
 func RandTietool(user, toolType string) (string, error) {
 	table := NewTietoolsLootTable(toolType)
 	_, roll := table.Roll(time.Now().UnixNano())
@@ -142,6 +153,7 @@ func RandTietool(user, toolType string) (string, error) {
 	return "", fmt.Errorf("tietool loot table returned nothing")
 }
 
+// Tietools returns all the tietools.
 func Tietools(toolType string) []Tietool {
 	if toolType == "heavy" || toolType == "hard" {
 		return tietoolsHard

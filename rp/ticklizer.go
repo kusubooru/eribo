@@ -61,6 +61,8 @@ func ticklizerFilters() []string {
 	return filters
 }
 
+// InTicklizerFilters returns true if a command argument is part of the
+// ticklizer filters.
 func InTicklizerFilters(arg string) bool {
 	filters := ticklizerFilters()
 	for _, f := range filters {
@@ -126,18 +128,22 @@ func ticklizer(name, owner, botName string, tcase ticklizerCase, filter string) 
 	return fmt.Sprintf(clean(format), filterMsg, name, part.name, itOrThem)
 }
 
+// Ticklizer returns a message for the homonymous command.
 func Ticklizer(name, owner, botName, filter string) string {
 	return ticklizer(name, owner, botName, normal, filter)
 }
 
+// TicklizerConfused returns a message when the confused state.
 func TicklizerConfused(name, owner, botName, filter string) string {
 	return ticklizer(name, owner, botName, confused, filter)
 }
 
+// TicklizerNotFound returns a message when the not found state.
 func TicklizerNotFound(name, owner, botName, filter string) string {
 	return ticklizer(name, owner, botName, notFound, filter)
 }
 
+// TicklizerForbidden returns a message when the forbidden state.
 func TicklizerForbidden(name, owner, botName, filter string) string {
 	return ticklizer(name, owner, botName, notFound, filter)
 }
