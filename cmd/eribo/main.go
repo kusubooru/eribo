@@ -617,7 +617,7 @@ func respond(
 			msg = rp.LothTime(loth)
 			break
 		}
-		if len(args) == 0 && args[0] == "confirm" {
+		if len(args) > 0 && args[0] == "confirm" {
 			loth, isNew, targets := channelMap.ChooseLoth(m.Character, m.Channel, botName, 1*time.Hour, lowNames)
 			lothLog := &eribo.LothLog{Issuer: m.Character, Channel: m.Channel, Loth: loth, IsNew: isNew, Targets: targets}
 			if err := logAdder.AddLothLog(lothLog); err != nil {
