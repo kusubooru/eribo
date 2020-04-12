@@ -473,4 +473,11 @@ var tktools = []Tktool{
 		excretes an oil that sensitises the skin. The snake looks to you for
 		instructions.`),
 	},
+	{
+		name:    `[BFG9000]`,
+		Quality: Epic,
+		Emote: tmplMust(`/me hands {{.User}} the terrifying {{.Tool}} also known as
+		Big Feather Gun 9000. It uses plasma cells to create a targeted kinetic beam
+		that tickles its target as if they were tickled by 9,000 feathers at once.`),
+	},
 }
