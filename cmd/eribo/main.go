@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -13,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	_ "net/http/pprof"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/kusubooru/eribo/advice"
@@ -86,6 +89,11 @@ func main() {
 	if err != nil {
 		log.Fatal("store error:", err)
 	}
+
+	http.HandleFunc("/", handler(home))
+	go func() {
+		log.Println(http.ListenAndServe(":6060", nil))
+	}()
 
 	// Connect to F-list.
 	c, err := flist.Connect(*addr)
@@ -214,6 +222,20 @@ func main() {
 		ciuch,
 		quit,
 	)
+}
+
+func handler(h func(w http.ResponseWriter, r *http.Request) error) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		err := h(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+}
+
+func home(w http.ResponseWriter, r *http.Request) error {
+	fmt.Fprintln(w, "eribo")
+	return nil
 }
 
 func defaultAddr(addr string, testServer, insecure bool) string {
