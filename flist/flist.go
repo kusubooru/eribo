@@ -454,12 +454,25 @@ func (c *VAR) CmdDecode(data []byte) error {
 }
 
 type Client struct {
-	ws      *websocket.Conn
-	Name    string
-	Version string
-	mu      sync.Mutex
-	chatMax int
-	privMax int
+	ws             *websocket.Conn
+	Name           string
+	Version        string
+	mu             sync.Mutex
+	chatMax        int
+	privMax        int
+	joinedChannels []string
+}
+
+func (c *Client) AddJoinedChannel(ch string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.joinedChannels = append(c.joinedChannels, ch)
+}
+
+func (c *Client) JoinedChannels() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.joinedChannels
 }
 
 func (c *Client) SetChatMax(max int) {
