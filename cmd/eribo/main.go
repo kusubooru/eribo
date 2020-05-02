@@ -49,10 +49,12 @@ func main() {
 		statusMsg   = flag.String("status", "", "status message to be displayed")
 		idTimeout   = flag.Int("idtimeout", 10, "seconds to wait for identification before exiting")
 		showVersion = flag.Bool("v", false, "print program version")
-		lowNames    lowLothNames
+		lowNames    flagStrings
+		sayers      flagStrings
 		versionArg  bool
 	)
 	flag.Var(&lowNames, "lowname", "`name` of player for lower loth chance e.g. -lowname 'Name 1' -lowname 'Name 2'")
+	flag.Var(&sayers, "sayers", "`character names` which have access to the !say command e.g. -sayers 'Name 1' -sayers 'Name 2'.")
 	flag.Parse()
 
 	botVersion := fmt.Sprintf("%s %s (runtime: %s)", filepath.Base(os.Args[0]), theVersion, runtime.Version())
@@ -187,6 +189,7 @@ func main() {
 		*owner,
 		*editor,
 		lowNames,
+		sayers,
 		mappingList,
 		store,
 		tietoolsLootTable,
@@ -238,11 +241,11 @@ func splitRoomTitles(s string) ([]string, error) {
 	return rooms, nil
 }
 
-type lowLothNames []string
+type flagStrings []string
 
-func (names lowLothNames) String() string { return fmt.Sprintf("%q", []string(names)) }
-func (names *lowLothNames) Set(value string) error {
-	*names = append(*names, value)
+func (s flagStrings) String() string { return fmt.Sprintf("%q", []string(s)) }
+func (s *flagStrings) Set(v string) error {
+	*s = append(*s, v)
 	return nil
 }
 
@@ -351,6 +354,7 @@ func handleMessages(
 	owner string,
 	editor string,
 	lowNames []string,
+	sayers []string,
 	mappingList *flist.MappingList,
 	store eribo.Store,
 	tietools *rp.TietoolsLootTable,
@@ -412,6 +416,7 @@ func handleMessages(
 			}
 			respondPriv(c, pri, store)
 			respondPrivOwner(c, store, tietools, tiehards, tktools, pri, channelMap, botName, botVersion, owner, editor)
+			respondPrivSayers(c, store, pri, sayers)
 		case ors := <-orsch:
 			flist.SortChannelsByTitle(ors.Channels)
 			for _, title := range roomTitles {
@@ -420,7 +425,9 @@ func handleMessages(
 					jch := flist.JCH{Channel: ch.Name}
 					if err := c.SendCmd(jch); err != nil {
 						log.Printf("error joining private room %q: %v", title, err)
+						return
 					}
+					c.AddJoinedChannel(ch.Name)
 				}
 			}
 		case lis := <-lisch:
@@ -501,7 +508,9 @@ func handleMessages(
 			jch := flist.JCH{Channel: ciu.Name}
 			if err := c.SendCmd(jch); err != nil {
 				log.Printf("CIU error joining private room %q: %v", ciu.Title, err)
+				return
 			}
+			c.AddJoinedChannel(ciu.Name)
 		case prd := <-prdch:
 			fmt.Println("got prd:", prd)
 		case <-pinch:
@@ -827,6 +836,40 @@ func respondPriv(c *flist.Client, pri *flist.PRI, logAdder cmdLogAdder) {
 		case nil:
 		default:
 			log.Printf("error sending %v response: %v", cmd, err)
+		}
+	}
+}
+
+func respondPrivSayers(
+	c *flist.Client,
+	store eribo.Store,
+	pri *flist.PRI,
+	sayers []string,
+) {
+	found := false
+	for i := range sayers {
+		if pri.Character == sayers[i] {
+			found = true
+		}
+	}
+	if !found {
+		return
+	}
+
+	if !strings.HasPrefix(pri.Message, "!say ") {
+		return
+	}
+	message := strings.TrimPrefix(pri.Message, "!say ")
+	message = strings.TrimSpace(message)
+	if message == "" {
+		return
+	}
+
+	chans := c.JoinedChannels()
+	for _, ch := range chans {
+		say := &flist.MSG{Channel: ch, Message: message}
+		if err := c.SendMSG(say); err != nil {
+			log.Printf("error sending %v response: %v", "!say", err)
 		}
 	}
 }
